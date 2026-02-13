@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROSCA | Master Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .receiver-row { background-color: #f0fdf4; border-left: 4px solid #166534; }
+        .receiver-badge { background-color: #166534; color: white; padding: 2px 8px; border-radius: 9999px; font-size: 0.7rem; }
+        .tab-active { border-bottom: 3px solid #166534; color: #166534; font-weight: 800; }
+        .hidden-tab { display: none; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen p-4 md:p-8 text-slate-800 font-sans">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+        <!-- TOP HEADER -->
+        <header class="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-200 gap-4">
+            <div>
+                <h1 class="text-2xl font-black text-slate-800 tracking-tight italic">MANAGER <span class="text-green-700 uppercase">Hub</span></h1>
+                <p class="text-xs text-slate-500 mb-2 font-bold uppercase tracking-widest" id="month-header"></p>
+                <div id="display-view-code" class="hidden bg-amber-50 text-amber-700 px-3 py-1.5 rounded-xl text-xs font-bold border border-amber-200 flex items-center gap-2">
+                    <span class="opacity-70 uppercase font-black">Public View Code:</span>
+                    <span id="group-code-val" class="text-sm font-black tracking-widest select-all"></span>
+                    <button id="btn-regen-code" class="ml-2 bg-amber-200 hover:bg-amber-300 text-amber-900 px-2 py-0.5 rounded text-[10px] uppercase font-black transition">Regen</button>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <select id="group-selector" class="p-3 bg-slate-100 border-none rounded-xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-green-500 w-64 cursor-pointer">
+                    <option value="">-- Select Group --</option>
+                </select>
+                <button id="nav-logout" class="text-xs font-bold text-slate-400 hover:text-rose-600 transition uppercase tracking-widest">Logout</button>
+            </div>
+        </header>
+
+        <!-- TABS -->
+        <div class="flex space-x-8 border-b border-slate-200 mb-4 px-4">
+            <button id="tab-btn-input" class="pb-3 text-sm font-bold tab-active uppercase tracking-widest">Payment Input</button>
+            <button id="tab-btn-ledger" class="pb-3 text-sm font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all">Financial Ledger</button>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            <!-- SIDEBAR -->
+            <div class="xl:col-span-3 space-y-6">
+                <div class="bg-white p-5 rounded-2xl border shadow-sm">
+                    <h2 class="font-bold text-slate-800 mb-4 text-xs uppercase tracking-widest border-b pb-2">Group Setup</h2>
+                    <div class="space-y-3">
+                        <input type="text" id="g-name" placeholder="Group Name" class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm outline-none">
+                        <input type="number" id="g-amount" placeholder="Monthly Target (₱)" class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm outline-none">
+                        <button id="btn-create-group" class="w-full bg-slate-800 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-black transition">Create Group</button>
+                    </div>
+                </div>
+
+                <div id="enrollment-ui" class="bg-white p-5 rounded-2xl border shadow-sm opacity-50 pointer-events-none transition-all">
+                    <h2 class="font-bold text-green-700 mb-4 text-xs uppercase tracking-widest border-b pb-2">Enroll Member</h2>
+                    <div class="space-y-3">
+                        <input type="text" id="m-name" placeholder="Member Name" class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm outline-none">
+                        <select id="m-payout" class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm outline-none bg-white">
+                            <option value="">Payout Month</option>
+                            <option value="January">January</option><option value="February">February</option>
+                            <option value="March">March</option><option value="April">April</option>
+                            <option value="May">May</option><option value="June">June</option>
+                            <option value="July">July</option><option value="August">August</option>
+                            <option value="September">September</option><option value="October">October</option>
+                            <option value="November">November</option><option value="December">December</option>
+                        </select>
+                        <button id="btn-add-member" class="w-full bg-green-700 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-green-800 transition">Add Member</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTENT -->
+            <div class="xl:col-span-9">
+                <!-- TAB 1: INPUT -->
+                <div id="view-input" class="space-y-6">
+                    <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+                        <div class="p-5 border-b flex justify-between items-center bg-slate-50/50">
+                            <h2 class="font-bold text-slate-800 uppercase text-xs tracking-widest">Active Member List</h2>
+                            <p id="group-target-label" class="text-xs font-black text-green-700 px-3 py-1 bg-green-50 rounded-full">Target: ₱0</p>
+                        </div>
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-[10px] uppercase text-slate-400 font-bold">
+                                <tr><th class="p-4">Name</th><th class="p-4">Payout</th><th class="p-4">Amount (₱)</th><th class="p-4">Applied Month</th><th class="p-4">Action</th></tr>
+                            </thead>
+                            <tbody id="member-table-body" class="divide-y"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+                        <div class="p-5 border-b bg-slate-50/50 flex flex-col md:flex-row justify-between gap-4">
+                            <h2 class="font-bold text-slate-800 text-xs uppercase tracking-widest italic">Contribution History</h2>
+                            <select id="filter-applied-month" class="text-[10px] p-2 border rounded font-bold outline-none bg-white">
+                                <option value="ALL">All Payment Months</option>
+                                <option value="January">Jan</option><option value="February">Feb</option><option value="March">Mar</option><option value="April">Apr</option><option value="May">May</option><option value="June">Jun</option><option value="July">Jul</option><option value="August">Aug</option><option value="September">Sep</option><option value="October">Oct</option><option value="November">Nov</option><option value="December">Dec</option>
+                            </select>
+                        </div>
+                        <div class="max-h-80 overflow-y-auto">
+                            <table class="w-full text-left text-[10px] uppercase">
+                                <tbody id="history-table-body" class="divide-y text-slate-600"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: FINANCIAL LEDGER -->
+                <div id="view-ledger" class="hidden-tab space-y-6">
+                    <!-- CASH STATUS GRID -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+                        <div class="bg-white p-5 rounded-2xl border shadow-sm">
+                            <p class="text-slate-400 uppercase text-[9px] font-black mb-1 tracking-widest">Cash on Hand (Current Bal.)</p>
+                            <p id="ledger-cash-on-hand" class="text-2xl font-black text-green-700">₱0.00</p>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl border shadow-sm">
+                            <p class="text-slate-400 uppercase text-[9px] font-black mb-1 tracking-widest text-center" id="expected-pot-label">Expected Pot</p>
+                            <p id="ledger-expected-pot" class="text-2xl font-black text-slate-800">₱0.00</p>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl border border-green-100 shadow-sm relative overflow-hidden">
+                            <div class="absolute top-0 right-0 p-1 bg-green-500 text-white text-[8px] font-black uppercase rounded-bl-lg">Status</div>
+                            <p class="text-green-600 uppercase text-[9px] font-black mb-1 tracking-widest mt-2">Remaining to Give</p>
+                            <p id="ledger-remaining-to-pay" class="text-2xl font-black text-rose-600 underline">₱0.00</p>
+                            <p class="text-[8px] text-slate-400 uppercase mt-2">Receiver: <span id="ledger-receiver-name" class="font-bold text-slate-700">None</span></p>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl border shadow-sm">
+                            <p class="text-slate-400 uppercase text-[9px] font-black mb-1 tracking-widest">Total Released (To this Person)</p>
+                            <p id="ledger-receiver-total-paid" class="text-2xl font-black text-slate-800">₱0.00</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Summary Table -->
+                        <div class="bg-white rounded-2xl border overflow-hidden shadow-sm flex flex-col">
+                            <div class="p-4 border-b font-bold text-xs uppercase bg-slate-50 tracking-widest flex justify-between">
+                                <span>Member All-Time Totals</span>
+                                <span class="text-slate-400 text-[9px]">Total Collections: <span id="ledger-total-collected">₱0.00</span></span>
+                            </div>
+                            <table class="w-full text-left text-xs">
+                                <tbody id="ledger-summary-body" class="divide-y text-slate-700"></tbody>
+                            </table>
+                        </div>
+                        <!-- Payout Panel -->
+                        <div class="bg-slate-800 text-white p-7 rounded-3xl shadow-xl space-y-6">
+                            <div>
+                                <h2 class="font-bold text-xl uppercase tracking-tighter italic">Release Pot to Receiver</h2>
+                                <p class="text-[10px] text-slate-400 uppercase tracking-widest font-black opacity-80 mt-1">Select month to find that month's receiver</p>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="bg-slate-700 p-3 rounded-xl">
+                                        <label class="text-[9px] text-slate-400 uppercase font-black mb-1 block">Release For Month</label>
+                                        <select id="payout-month-select" class="w-full bg-transparent text-white font-bold outline-none text-sm cursor-pointer">
+                                            <option value="January" class="bg-slate-800">January</option><option value="February" class="bg-slate-800">February</option>
+                                            <option value="March" class="bg-slate-800">March</option><option value="April" class="bg-slate-800">April</option>
+                                            <option value="May" class="bg-slate-800">May</option><option value="June" class="bg-slate-800">June</option>
+                                            <option value="July" class="bg-slate-800">July</option><option value="August" class="bg-slate-800">August</option>
+                                            <option value="September" class="bg-slate-800">September</option><option value="October" class="bg-slate-800">October</option>
+                                            <option value="November" class="bg-slate-800">November</option><option value="December" class="bg-slate-800">December</option>
+                                        </select>
+                                    </div>
+                                    <div class="bg-slate-700 p-3 rounded-xl">
+                                        <label class="text-[9px] text-slate-400 uppercase font-black mb-1 block">Status</label>
+                                        <select id="payout-status" class="w-full bg-transparent text-white font-bold outline-none text-sm cursor-pointer">
+                                            <option value="Partial Payout" class="bg-slate-800">Partial Payment</option>
+                                            <option value="Full Payout" class="bg-slate-800">Full Payout</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="bg-slate-700 p-4 rounded-2xl border border-slate-600">
+                                    <label class="text-[9px] text-slate-400 uppercase font-black mb-1 block">Release Amount (₱)</label>
+                                    <input type="number" id="payout-amount" placeholder="0.00" class="w-full bg-transparent text-2xl font-black text-white outline-none placeholder-slate-500">
+                                </div>
+                                <button id="btn-record-payout" class="w-full bg-green-600 hover:bg-green-700 py-4 rounded-2xl font-black uppercase text-sm tracking-widest transition transform active:scale-95 shadow-lg">Post Payout to Ledger</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-5 rounded-2xl border shadow-sm">
+                        <h2 class="font-bold text-slate-800 mb-3 text-xs uppercase border-b pb-2 tracking-widest">All Payout History</h2>
+                        <div id="payout-history-list" class="space-y-2"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, auth } from './config.js';
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { collection, addDoc, query, where, onSnapshot, serverTimestamp, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+        document.getElementById('month-header').innerText = `PH Edition • ${currentMonth}`;
+        document.getElementById('payout-month-select').value = currentMonth;
+
+        let selectedGroupId = "";
+        let groupTarget = 0;
+        let membersMap = {};
+        let contributionsRaw = [];
+        let payoutsRaw = [];
+
+        // UI TABS
+        const btnInput = document.getElementById('tab-btn-input');
+        const btnLedger = document.getElementById('tab-btn-ledger');
+        const viewInput = document.getElementById('view-input');
+        const viewLedger = document.getElementById('view-ledger');
+
+        btnInput.onclick = () => { viewInput.classList.remove('hidden-tab'); viewLedger.classList.add('hidden-tab'); btnInput.classList.add('tab-active'); btnLedger.classList.remove('tab-active'); };
+        btnLedger.onclick = () => { viewInput.classList.add('hidden-tab'); viewLedger.classList.remove('hidden-tab'); btnInput.classList.remove('tab-active'); btnLedger.classList.add('tab-active'); };
+
+        onAuthStateChanged(auth, (u) => { if(u) loadGroups(u.uid); else window.location.href="login.html"; });
+        document.getElementById('nav-logout').onclick = () => signOut(auth);
+
+        function loadGroups(uid) {
+            onSnapshot(query(collection(db, "groups"), where("managerUid", "==", uid)), (s) => {
+                const sel = document.getElementById('group-selector');
+                sel.innerHTML = '<option value="">-- Select Group --</option>';
+                s.forEach(d => sel.innerHTML += `<option value="${d.id}">${d.data().name}</option>`);
+            });
+        }
+
+        document.getElementById('group-selector').onchange = (e) => {
+            selectedGroupId = e.target.value;
+            if(selectedGroupId) { syncEverything(); }
+        };
+
+        function syncEverything() {
+            document.getElementById('enrollment-ui').classList.remove('opacity-50', 'pointer-events-none');
+            
+            // Listen to Group Meta
+            onSnapshot(doc(db, "groups", selectedGroupId), (d) => {
+                if(!d.exists()) return;
+                const g = d.data();
+                groupTarget = g.amount;
+                document.getElementById('group-target-label').innerText = `Target: ₱${g.amount.toLocaleString()}`;
+                document.getElementById('display-view-code').classList.remove('hidden');
+                document.getElementById('group-code-val').innerText = g.viewCode || "MISSING";
+            });
+
+            // Listen to Members
+            onSnapshot(query(collection(db, "members"), where("groupId", "==", selectedGroupId)), (mSnap) => {
+                membersMap = {};
+                const tbody = document.getElementById('member-table-body');
+                tbody.innerHTML = '';
+                const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+                
+                mSnap.forEach(d => {
+                    const m = d.data();
+                    const id = d.id;
+                    const isReceiver = m.payoutMonth.toLowerCase() === currentMonth.toLowerCase();
+                    membersMap[id] = { ...m, id, totalPaid: 0 };
+
+                    let monthOptions = "";
+                    months.forEach(mon => monthOptions += `<option value="${mon}" ${mon === currentMonth ? 'selected' : ''}>${mon.substring(0,3)}</option>`);
+
+                    tbody.innerHTML += `
+                        <tr class="${isReceiver ? 'receiver-row' : ''}">
+                            <td class="p-4 font-bold text-xs uppercase tracking-tighter">${m.name}${isReceiver ? '<br><span class="receiver-badge uppercase tracking-widest">Receiver</span>' : ''}</td>
+                            <td class="p-4 text-green-700 font-bold text-xs italic">${m.payoutMonth}</td>
+                            <td class="p-4">₱<input type="number" id="pay-amt-${id}" placeholder="${groupTarget}" ${isReceiver ? 'disabled' : ''} class="w-24 p-1 border rounded text-xs outline-none bg-white"></td>
+                            <td class="p-4"><select id="pay-month-${id}" ${isReceiver ? 'disabled' : ''} class="p-1 border rounded text-[10px] bg-white">${monthOptions}</select></td>
+                            <td class="p-4"><button onclick="recordPay('${id}', '${m.name}')" ${isReceiver ? 'disabled' : ''} class="bg-slate-800 text-white px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition active:scale-95">Post</button></td>
+                        </tr>`;
+                });
+                updatePayoutStats();
+            });
+
+            // Listen to Contributions
+            onSnapshot(query(collection(db, "contributions"), where("groupId", "==", selectedGroupId)), (cSnap) => {
+                contributionsRaw = [];
+                let grandTotalContr = 0;
+                Object.keys(membersMap).forEach(id => membersMap[id].totalPaid = 0);
+                cSnap.forEach(cDoc => {
+                    const c = cDoc.data();
+                    grandTotalContr += c.amount;
+                    if(membersMap[c.memberId]) membersMap[c.memberId].totalPaid += c.amount;
+                    contributionsRaw.push(c);
+                });
+                renderHistory();
+                renderLedgerSummary(grandTotalContr);
+            });
+
+            // Listen to Payouts
+            onSnapshot(query(collection(db, "payouts"), where("groupId", "==", selectedGroupId)), (pSnap) => {
+                payoutsRaw = [];
+                const list = document.getElementById('payout-history-list');
+                list.innerHTML = '';
+                pSnap.forEach(d => payoutsRaw.push(d.data()));
+                payoutsRaw.sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+                payoutsRaw.forEach(p => {
+                    const date = p.timestamp ? p.timestamp.toDate().toLocaleDateString() : 'Now';
+                    list.innerHTML += `<div class="p-3 bg-slate-50 rounded-lg border text-[10px] flex justify-between items-center mb-1"><div><b>${p.receiverName}</b> (${p.month})<br>${date}</div><div class="text-right text-green-700 font-black">₱${p.amountGiven.toLocaleString()}<br><span class="text-rose-600 font-mono">${p.status}</span></div></div>`;
+                });
+                updatePayoutStats();
+            });
+        }
+
+        function updatePayoutStats() {
+            const selectedMonth = document.getElementById('payout-month-select').value;
+            const receiver = Object.values(membersMap).find(m => m.payoutMonth === selectedMonth);
+            
+            const nameEl = document.getElementById('ledger-receiver-name');
+            const releasedEl = document.getElementById('ledger-receiver-total-paid');
+            const expectedEl = document.getElementById('ledger-expected-pot');
+            const remainingEl = document.getElementById('ledger-remaining-to-pay');
+            const labelEl = document.getElementById('expected-pot-label');
+            const cashEl = document.getElementById('ledger-cash-on-hand');
+
+            const totalMembers = Object.keys(membersMap).length;
+            const expectedPot = (totalMembers - 1) * groupTarget;
+            
+            labelEl.innerText = `Expected Pot for ${selectedMonth}`;
+            expectedEl.innerText = `₱${expectedPot.toLocaleString()}`;
+
+            if (receiver) {
+                nameEl.innerText = receiver.name;
+                const totalReleased = payoutsRaw.filter(p => p.receiverId === receiver.id && p.month === selectedMonth).reduce((sum, p) => sum + p.amountGiven, 0);
+                releasedEl.innerText = `₱${totalReleased.toLocaleString()}`;
+                remainingEl.innerText = `₱${Math.max(0, expectedPot - totalReleased).toLocaleString()}`;
+            } else {
+                nameEl.innerText = "No Receiver Assigned";
+                releasedEl.innerText = "₱0.00";
+                remainingEl.innerText = "₱0.00";
+            }
+
+            // Cash on Hand Calculation
+            const totalIn = contributionsRaw.reduce((sum, c) => sum + c.amount, 0);
+            const totalOut = payoutsRaw.reduce((sum, p) => sum + p.amountGiven, 0);
+            cashEl.innerText = `₱${(totalIn - totalOut).toLocaleString()}`;
+        }
+
+        document.getElementById('payout-month-select').onchange = updatePayoutStats;
+
+        function renderHistory() {
+            const filterMonth = document.getElementById('filter-applied-month').value;
+            const tbody = document.getElementById('history-table-body');
+            tbody.innerHTML = '';
+            let filtered = contributionsRaw.filter(c => filterMonth === "ALL" || c.appliedMonth === filterMonth);
+            filtered.sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+            filtered.forEach(r => {
+                const t = r.timestamp ? r.timestamp.toDate().toLocaleString('en-PH', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '...';
+                tbody.innerHTML += `<tr class="border-b border-slate-50"><td class="p-4 text-slate-400 font-bold">${t}</td><td class="p-4 font-black uppercase text-slate-700">${r.memberName}</td><td class="p-4 font-black text-green-700 italic">${r.appliedMonth}</td><td class="p-4 font-black text-right text-slate-900">₱${r.amount.toLocaleString()}</td></tr>`;
+            });
+        }
+
+        function renderLedgerSummary(grandTotalContr) {
+            const tbody = document.getElementById('ledger-summary-body');
+            tbody.innerHTML = '';
+            document.getElementById('ledger-total-collected').innerText = `₱${grandTotalContr.toLocaleString()}`;
+            Object.keys(membersMap).forEach(id => {
+                const m = membersMap[id];
+                tbody.innerHTML += `<tr class="hover:bg-slate-50 transition"><td class="p-3 font-bold text-slate-600 uppercase tracking-tighter">${m.name}</td><td class="p-3 font-black text-right text-slate-900">₱${m.totalPaid.toLocaleString()}</td></tr>`;
+            });
+            updatePayoutStats();
+        }
+
+        document.getElementById('filter-applied-month').onchange = renderHistory;
+
+        // ACTION BUTTONS
+        window.recordPay = async (id, name) => {
+            const amt = document.getElementById(`pay-amt-${id}`).value;
+            const month = document.getElementById(`pay-month-${id}`).value;
+            if(!amt || amt <= 0) return alert("Enter valid amount");
+            await addDoc(collection(db, "contributions"), { groupId: selectedGroupId, managerUid: auth.currentUser.uid, memberId: id, memberName: name, amount: parseFloat(amt), appliedMonth: month, timestamp: serverTimestamp() });
+            document.getElementById(`pay-amt-${id}`).value = "";
+            alert("Posted!");
+        };
+
+        document.getElementById('btn-record-payout').onclick = async () => {
+            const amt = document.getElementById('payout-amount').value;
+            const status = document.getElementById('payout-status').value;
+            const selMonth = document.getElementById('payout-month-select').value;
+            const receiver = Object.values(membersMap).find(m => m.payoutMonth === selMonth);
+
+            if(!receiver || !amt || amt <= 0) return alert("Select month with valid receiver and enter amount");
+            
+            try {
+                await addDoc(collection(db, "payouts"), { groupId: selectedGroupId, managerUid: auth.currentUser.uid, receiverId: receiver.id, receiverName: receiver.name, month: selMonth, amountGiven: parseFloat(amt), status, timestamp: serverTimestamp() });
+                document.getElementById('payout-amount').value = "";
+                alert(`₱${amt} Released to ${receiver.name} for ${selMonth}`);
+            } catch (e) { alert(e.message); }
+        };
+
+        document.getElementById('btn-create-group').onclick = async () => {
+            const name = document.getElementById('g-name').value;
+            const amt = document.getElementById('g-amount').value;
+            if(!name || !amt) return alert("Fill fields");
+            const viewCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            await addDoc(collection(db, "groups"), { managerUid: auth.currentUser.uid, name, amount: parseFloat(amt), viewCode, createdAt: serverTimestamp() });
+            alert("Group Created! View Code: " + viewCode);
+        };
+
+        document.getElementById('btn-add-member').onclick = async () => {
+            const name = document.getElementById('m-name').value;
+            const payout = document.getElementById('m-payout').value;
+            if(!name || !payout) return alert("Missing fields");
+            await addDoc(collection(db, "members"), { groupId: selectedGroupId, managerUid: auth.currentUser.uid, name, payoutMonth: payout, createdAt: serverTimestamp() });
+            document.getElementById('m-name').value = "";
+            alert("Member Added");
+        };
+
+        document.getElementById('btn-regen-code').onclick = async () => {
+            const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            await updateDoc(doc(db, "groups", selectedGroupId), { viewCode: newCode });
+            alert("New Code: " + newCode);
+        };
+    </script>
+</body>
+</html>

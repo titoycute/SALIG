@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROSCA | Financial Ledger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen p-4 md:p-8 text-slate-800">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+        <!-- HEADER -->
+        <header class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-black tracking-tight">Financial Ledger & Payouts</h1>
+                <p class="text-sm text-slate-500">Track total collections and pot releases</p>
+            </div>
+            <select id="group-selector" class="p-3 bg-slate-100 border-none rounded-xl font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="">Select Group to View Ledger</option>
+            </select>
+        </header>
+
+        <!-- STATS CARDS -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <p class="text-[10px] font-bold text-slate-400 uppercase">Total Collected (All Time)</p>
+                <p id="stat-total-collected" class="text-3xl font-black text-slate-800">₱0.00</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <p class="text-[10px] font-bold text-slate-400 uppercase">Current Month's Receiver</p>
+                <p id="stat-receiver-name" class="text-xl font-bold text-rose-600">None</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <p class="text-[10px] font-bold text-slate-400 uppercase">Pot Status</p>
+                <p id="stat-pot-status" class="text-xl font-bold text-amber-600">Calculating...</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- MEMBER TOTALS TABLE -->
+            <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-5 border-b font-bold bg-slate-50">Member Contribution Summary</div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-[10px] uppercase text-slate-400 font-bold">
+                            <tr>
+                                <th class="p-4">Member Name</th>
+                                <th class="p-4">Total Paid (₱)</th>
+                                <th class="p-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledger-table-body" class="divide-y divide-slate-100">
+                            <!-- Data loads here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- PAYOUT ACTION PANEL -->
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-indigo-900 text-white p-6 rounded-2xl shadow-lg">
+                    <h2 class="font-bold text-lg mb-4">Pot Release (Payout)</h2>
+                    <p class="text-xs text-indigo-200 mb-6">Use this to record when you officially hand the money to the receiver.</p>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-[10px] uppercase font-bold text-indigo-300">Amount Given</label>
+                            <input type="number" id="payout-amount" placeholder="0.00" class="w-full p-3 bg-indigo-800 border-none rounded-xl mt-1 text-white placeholder-indigo-400">
+                        </div>
+                        <div>
+                            <label class="text-[10px] uppercase font-bold text-indigo-300">Payout Status</label>
+                            <select id="payout-status" class="w-full p-3 bg-indigo-800 border-none rounded-xl mt-1 text-white">
+                                <option value="Full Payout">Full Payout</option>
+                                <option value="Partial Payout">Partial Payout (Lacking)</option>
+                            </select>
+                        </div>
+                        <button id="btn-record-payout" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 rounded-xl transition shadow-lg">
+                            Confirm Pot Release
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PAYOUT HISTORY -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <h2 class="font-bold text-slate-800 mb-4 border-b pb-2 text-sm">Payout History</h2>
+                    <div id="payout-history-list" class="space-y-3 text-xs">
+                        <!-- History logs here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+    import { db, auth } from './config.js';
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    let selectedGroupId = "";
+    let currentReceiver = null;
+    const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) loadGroups(user.uid);
+        else window.location.href = "login.html";
+    });
+
+    function loadGroups(uid) {
+        const q = query(collection(db, "groups"), where("managerUid", "==", uid));
+        onSnapshot(q, (snap) => {
+            const select = document.getElementById('group-selector');
+            select.innerHTML = '<option value="">Select Group</option>';
+            snap.forEach(d => select.innerHTML += `<option value="${d.id}">${d.data().name}</option>`);
+        });
+    }
+
+    document.getElementById('group-selector').onchange = (e) => {
+        selectedGroupId = e.target.value;
+        if (selectedGroupId) {
+            calculateLedger();
+            loadPayoutHistory();
+        }
+    };
+
+    async function calculateLedger() {
+        const qMembers = query(collection(db, "members"), where("groupId", "==", selectedGroupId));
+        onSnapshot(qMembers, (memberSnap) => {
+            const members = {};
+            currentReceiver = null; // Reset
+            document.getElementById('stat-receiver-name').innerText = "None Assigned";
+
+            memberSnap.forEach(d => {
+                const data = d.data();
+                members[d.id] = { name: data.name, payoutMonth: data.payoutMonth, totalPaid: 0 };
+                
+                // MATCHING LOGIC
+                if(data.payoutMonth.trim().toLowerCase() === currentMonth.toLowerCase()) {
+                    currentReceiver = { id: d.id, name: data.name };
+                    document.getElementById('stat-receiver-name').innerText = data.name;
+                    console.log("Receiver found for this month:", data.name);
+                }
+            });
+
+            const qContr = query(collection(db, "contributions"), where("groupId", "==", selectedGroupId));
+            onSnapshot(qContr, (contrSnap) => {
+                let totalGlobal = 0;
+                Object.keys(members).forEach(id => members[id].totalPaid = 0);
+                contrSnap.forEach(d => {
+                    const c = d.data();
+                    if (members[c.memberId]) {
+                        members[c.memberId].totalPaid += c.amount;
+                        totalGlobal += c.amount;
+                    }
+                });
+                renderLedger(members, totalGlobal);
+            });
+        });
+    }
+
+function renderLedger(members, totalGlobal) {
+        const tbody = document.getElementById('ledger-table-body');
+        tbody.innerHTML = '';
+        document.getElementById('stat-total-collected').innerText = `₱${totalGlobal.toLocaleString()}`;
+        
+        // --- NEW: UPDATE POT STATUS CARD ---
+        // Assuming the pot is "Ready" if total collected matches a reasonable amount
+        const potStatusCard = document.getElementById('stat-pot-status');
+        if (totalGlobal > 0) {
+            potStatusCard.innerText = "Funds Collected";
+            potStatusCard.className = "text-xl font-bold text-green-600";
+        } else {
+            potStatusCard.innerText = "No Funds Yet";
+            potStatusCard.className = "text-xl font-bold text-amber-600";
+        }
+
+        Object.keys(members).forEach(id => {
+            const m = members[id];
+            // Using a safer trim and check
+            const isReceiver = m.payoutMonth && m.payoutMonth.trim().toLowerCase() === currentMonth.toLowerCase();
+            
+            tbody.innerHTML += `
+                <tr class="border-b transition hover:bg-slate-50">
+                    <td class="p-4">
+                        <p class="font-bold text-slate-700">${m.name}</p>
+                        ${isReceiver ? '<span class="text-[9px] bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Receiver for ' + currentMonth + '</span>' : ''}
+                    </td>
+                    <td class="p-4 font-black">₱${m.totalPaid.toLocaleString()}</td>
+                    <td class="p-4">
+                        <span class="text-[10px] font-bold ${m.totalPaid > 0 ? 'text-emerald-500' : 'text-slate-300'}">
+                            ${m.totalPaid > 0 ? 'ACTIVE CONTRIBUTOR' : 'NO PAYMENTS'}
+                        </span>
+                    </td>
+                </tr>`;
+        });
+    }
+
+    // --- REFINED BUTTON LOGIC ---
+    document.getElementById('btn-record-payout').onclick = async () => {
+    const amtInput = document.getElementById('payout-amount');
+    const statusInput = document.getElementById('payout-status');
+
+    if(!selectedGroupId) return alert("Select a group first.");
+    if(!currentReceiver) return alert("No receiver found for this month.");
+    if(!amtInput.value) return alert("Enter amount.");
+
+    try {
+        await addDoc(collection(db, "payouts"), {
+            groupId: selectedGroupId,
+            managerUid: auth.currentUser.uid, // <--- ADD THIS LINE
+            receiverId: currentReceiver.id,
+            receiverName: currentReceiver.name,
+            month: currentMonth,
+            amountGiven: parseFloat(amtInput.value),
+            status: statusInput.value,
+            timestamp: serverTimestamp()
+        });
+        alert(`Pot released to ${currentReceiver.name}!`);
+        amtInput.value = "";
+    } catch (e) {
+        console.error("Payout Error:", e);
+        alert("Permission Error: " + e.message);
+    }
+};
+        const amtInput = document.getElementById('payout-amount');
+        const statusInput = document.getElementById('payout-status');
+
+        // DEBUG: See what is happening in the background
+        console.log("Attempting Payout for:", currentReceiver);
+
+        if(!selectedGroupId) {
+            alert("Please select a group first.");
+            return;
+        }
+        
+        if(!currentReceiver) {
+            alert(`ACTION BLOCKED: No member is assigned as the receiver for ${currentMonth}. Go to Payment Input to assign a member to this month.`);
+            return;
+        }
+
+        if(!amtInput.value || parseFloat(amtInput.value) <= 0) {
+            alert("Please enter a valid amount released to the receiver.");
+            return;
+        }
+
+        try {
+            await addDoc(collection(db, "payouts"), {
+                groupId: selectedGroupId,
+                receiverId: currentReceiver.id,
+                receiverName: currentReceiver.name,
+                month: currentMonth,
+                amountGiven: parseFloat(amtInput.value),
+                status: statusInput.value,
+                timestamp: serverTimestamp()
+            });
+            alert(`SUCCESS: Pot of ₱${parseFloat(amtInput.value).toLocaleString()} officially released to ${currentReceiver.name}.`);
+            amtInput.value = "";
+        } catch (e) {
+            console.error("Firebase Error:", e);
+            alert("Permission Error: Check your Firebase Rules for the 'payouts' collection.");
+        }
+    };
+    function loadPayoutHistory() {
+        // Manual sorting to avoid Index issues initially
+        const q = query(collection(db, "payouts"), where("groupId", "==", selectedGroupId));
+        onSnapshot(q, (snap) => {
+            const list = document.getElementById('payout-history-list');
+            let payouts = [];
+            snap.forEach(d => payouts.push(d.data()));
+            
+            // Sort newest first in JS
+            payouts.sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+
+            list.innerHTML = payouts.length ? '' : '<p class="text-slate-400 italic">No payouts recorded.</p>';
+            payouts.forEach(data => {
+                const date = data.timestamp ? data.timestamp.toDate().toLocaleDateString() : 'Just now';
+                list.innerHTML += `
+                    <div class="p-3 bg-slate-50 rounded-lg border border-slate-100 mb-2">
+                        <div class="flex justify-between font-bold">
+                            <span>${data.receiverName}</span>
+                            <span class="text-rose-600">₱${data.amountGiven.toLocaleString()}</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-1 uppercase">${date} • ${data.status}</p>
+                    </div>`;
+            });
+        });
+    }
+</script>
+</body>
+</html>

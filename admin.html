@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROSCA | Super Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .admin-danger { border-left: 4px solid #dc2626; }
+        .tab-active { border-bottom: 3px solid #dc2626; color: #dc2626; font-weight: 800; }
+        .hidden-tab { display: none; }
+    </style>
+</head>
+<body class="bg-slate-900 min-h-screen p-4 md:p-8 text-slate-100">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+        <!-- ADMIN HEADER -->
+        <header class="flex flex-col md:flex-row justify-between items-center bg-slate-800 p-6 rounded-3xl border border-rose-500/30 gap-4 shadow-2xl">
+            <div>
+                <h1 class="text-3xl font-black tracking-tighter text-white uppercase">Super Admin <span class="text-rose-500">God Mode</span></h1>
+                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Global Database Access • Full Edit/Delete Rights</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <select id="global-group-selector" class="p-3 bg-slate-700 border-none rounded-xl font-bold text-white outline-none focus:ring-2 focus:ring-rose-500 w-64">
+                    <option value="">-- Select Group to Audit --</option>
+                </select>
+                <button id="nav-logout" class="bg-rose-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-rose-700 transition">LOGOUT</button>
+            </div>
+        </header>
+
+        <!-- ADMIN TAB NAVIGATION -->
+        <div class="flex space-x-8 border-b border-slate-700 mb-4 px-4 overflow-x-auto">
+            <button id="tab-groups" class="pb-3 text-xs font-bold tab-active uppercase tracking-widest whitespace-nowrap">Manage Groups</button>
+            <button id="tab-members" class="pb-3 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Edit Members</button>
+            <button id="tab-history" class="pb-3 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Audit Logs</button>
+        </div>
+
+        <!-- 1. MANAGE GROUPS TAB -->
+        <div id="view-groups" class="space-y-6">
+            <div class="bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden shadow-xl">
+                <div class="p-6 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center">
+                    <h2 class="font-bold text-rose-500 uppercase text-sm tracking-widest">Global Group Directory</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-900 text-slate-500 text-[10px] uppercase font-bold">
+                            <tr><th class="p-4">Group Name</th><th class="p-4">Target (₱)</th><th class="p-4">View Code</th><th class="p-4 text-center">Actions</th></tr>
+                        </thead>
+                        <tbody id="admin-group-list" class="divide-y divide-slate-700"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. EDIT MEMBERS TAB -->
+        <div id="view-members" class="hidden-tab space-y-6">
+            <div class="bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden shadow-xl">
+                <div class="p-6 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center">
+                    <h2 class="font-bold text-emerald-500 uppercase text-sm tracking-widest">Edit Member Profiles</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-900 text-slate-500 text-[10px] uppercase font-bold">
+                            <tr><th class="p-4">Subjective Name</th><th class="p-4">Payout Month</th><th class="p-4 text-center">Actions</th></tr>
+                        </thead>
+                        <tbody id="admin-member-list" class="divide-y divide-slate-700"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. AUDIT LOGS TAB -->
+        <div id="view-history" class="hidden-tab grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Contributions -->
+            <div class="bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden shadow-xl">
+                <div class="p-4 bg-slate-900/50 border-b border-slate-700 font-bold text-xs uppercase text-slate-400 italic">Contribution Audit</div>
+                <div class="max-h-[500px] overflow-y-auto">
+                    <table class="w-full text-[10px] uppercase">
+                        <tbody id="admin-contribution-logs" class="divide-y divide-slate-700"></tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- Payouts -->
+            <div class="bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden shadow-xl">
+                <div class="p-4 bg-slate-900/50 border-b border-slate-700 font-bold text-xs uppercase text-slate-400 italic">Payout Audit</div>
+                <div class="max-h-[500px] overflow-y-auto">
+                    <table class="w-full text-[10px] uppercase">
+                        <tbody id="admin-payout-logs" class="divide-y divide-slate-700"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, auth } from './config.js';
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        let selectedGroupId = "";
+
+        // AUTH CHECK
+        onAuthStateChanged(auth, async (u) => {
+            if(!u) window.location.href="login.html";
+            loadAllGroups();
+        });
+
+        document.getElementById('nav-logout').onclick = () => signOut(auth);
+
+        // TAB SWITCHING
+        const tabs = ['groups', 'members', 'history'];
+        tabs.forEach(t => {
+            document.getElementById(`tab-${t}`).onclick = () => {
+                tabs.forEach(x => {
+                    document.getElementById(`view-${x}`).classList.add('hidden-tab');
+                    document.getElementById(`tab-${x}`).classList.remove('tab-active');
+                    document.getElementById(`tab-${x}`).classList.add('text-slate-500');
+                });
+                document.getElementById(`view-${t}`).classList.remove('hidden-tab');
+                document.getElementById(`tab-${t}`).classList.add('tab-active');
+            };
+        });
+
+        // 1. GLOBAL GROUP LOGIC
+        function loadAllGroups() {
+            onSnapshot(collection(db, "groups"), (snap) => {
+                const tbody = document.getElementById('admin-group-list');
+                const selector = document.getElementById('global-group-selector');
+                tbody.innerHTML = '';
+                selector.innerHTML = '<option value="">-- Select Group to Audit --</option>';
+
+                snap.forEach(d => {
+                    const g = d.data();
+                    const id = d.id;
+                    selector.innerHTML += `<option value="${id}">${g.name}</option>`;
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-700/30 transition">
+                            <td class="p-4 font-bold"><input id="gn-${id}" value="${g.name}" class="bg-transparent border-b border-slate-600 outline-none focus:border-rose-500 w-full"></td>
+                            <td class="p-4"><input type="number" id="ga-${id}" value="${g.amount}" class="bg-transparent border-b border-slate-600 outline-none focus:border-rose-500 w-24"></td>
+                            <td class="p-4 font-mono text-rose-400">${g.viewCode || 'NO CODE'}</td>
+                            <td class="p-4 flex gap-2 justify-center">
+                                <button onclick="updateGroup('${id}')" class="bg-emerald-600 p-2 rounded text-[10px] font-bold">SAVE</button>
+                                <button onclick="deleteGroup('${id}')" class="bg-rose-600 p-2 rounded text-[10px] font-bold">DELETE</button>
+                            </td>
+                        </tr>`;
+                });
+            });
+        }
+
+        window.updateGroup = async (id) => {
+            const name = document.getElementById(`gn-${id}`).value;
+            const amount = document.getElementById(`ga-${id}`).value;
+            await updateDoc(doc(db, "groups", id), { name, amount: parseFloat(amount) });
+            alert("Group Updated");
+        };
+
+        window.deleteGroup = async (id) => {
+            if(!confirm("DANGER: This will delete the group. Members and contributions will remain in DB but be disconnected. Proceed?")) return;
+            await deleteDoc(doc(db, "groups", id));
+        };
+
+        // 2. AUDIT LOGIC (WHEN GROUP SELECTED)
+        document.getElementById('global-group-selector').onchange = (e) => {
+            selectedGroupId = e.target.value;
+            if(selectedGroupId) {
+                loadMembers(selectedGroupId);
+                loadAuditLogs(selectedGroupId);
+            }
+        };
+
+        function loadMembers(gid) {
+            onSnapshot(query(collection(db, "members"), where("groupId", "==", gid)), (snap) => {
+                const tbody = document.getElementById('admin-member-list');
+                tbody.innerHTML = '';
+                snap.forEach(d => {
+                    const m = d.data();
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-700/30 transition">
+                            <td class="p-4 font-bold"><input id="mn-${d.id}" value="${m.name}" class="bg-transparent border-b border-slate-600 outline-none w-full"></td>
+                            <td class="p-4"><input id="mp-${d.id}" value="${m.payoutMonth}" class="bg-transparent border-b border-slate-600 outline-none w-full"></td>
+                            <td class="p-4 flex gap-2 justify-center">
+                                <button onclick="updateMember('${d.id}')" class="bg-emerald-600 p-2 rounded text-[10px] font-bold">SAVE</button>
+                                <button onclick="deleteMember('${d.id}')" class="bg-rose-600 p-2 rounded text-[10px] font-bold">DELETE</button>
+                            </td>
+                        </tr>`;
+                });
+            });
+        }
+
+        window.updateMember = async (id) => {
+            const name = document.getElementById(`mn-${id}`).value;
+            const payoutMonth = document.getElementById(`mp-${id}`).value;
+            await updateDoc(doc(db, "members", id), { name, payoutMonth });
+            alert("Member Updated");
+        };
+
+        window.deleteMember = async (id) => {
+            if(!confirm("Delete this member?")) return;
+            await deleteDoc(doc(db, "members", id));
+        };
+
+        // 3. TRANSACTION AUDIT
+        function loadAuditLogs(gid) {
+            // Contributions
+            onSnapshot(query(collection(db, "contributions"), where("groupId", "==", gid)), (snap) => {
+                const tbody = document.getElementById('admin-contribution-logs');
+                tbody.innerHTML = '';
+                snap.forEach(d => {
+                    const c = d.data();
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-700/30">
+                            <td class="p-3 text-slate-500">${c.timestamp?.toDate().toLocaleDateString() || '...'}</td>
+                            <td class="p-3 font-bold">${c.memberName}</td>
+                            <td class="p-3 text-emerald-400">₱${c.amount}</td>
+                            <td class="p-3"><button onclick="deleteEntry('contributions', '${d.id}')" class="text-rose-500 font-bold underline">DEL</button></td>
+                        </tr>`;
+                });
+            });
+
+            // Payouts
+            onSnapshot(query(collection(db, "payouts"), where("groupId", "==", gid)), (snap) => {
+                const tbody = document.getElementById('admin-payout-logs');
+                tbody.innerHTML = '';
+                snap.forEach(d => {
+                    const p = d.data();
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-700/30">
+                            <td class="p-3 text-slate-500">${p.month}</td>
+                            <td class="p-3 font-bold">${p.receiverName}</td>
+                            <td class="p-3 text-rose-500 font-black">₱${p.amountGiven}</td>
+                            <td class="p-3"><button onclick="deleteEntry('payouts', '${d.id}')" class="text-rose-500 font-bold underline">DEL</button></td>
+                        </tr>`;
+                });
+            });
+        }
+
+        window.deleteEntry = async (col, id) => {
+            if(!confirm("Delete this transaction record permanently?")) return;
+            await deleteDoc(doc(db, col, id));
+            alert("Record Deleted");
+        };
+    </script>
+</body>
+</html>

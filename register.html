@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROSCA | Register</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 flex items-center justify-center min-h-screen p-4">
+
+    <div class="max-w-md w-full bg-white rounded-3xl p-8 shadow-2xl">
+        <div class="text-center mb-8">
+            <h1 id="reg-title" class="text-3xl font-black text-slate-800 tracking-tight">Manager Account</h1>
+            <p id="reg-subtitle" class="text-slate-500 text-sm">Create your ROSCA management portal</p>
+        </div>
+
+        <div class="space-y-4">
+            <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-4 bg-slate-100 border-none rounded-2xl outline-none focus:ring-2 focus:ring-slate-800 transition">
+            <input type="email" id="reg-email" placeholder="Email Address" class="w-full p-4 bg-slate-100 border-none rounded-2xl outline-none focus:ring-2 focus:ring-slate-800 transition">
+            <input type="password" id="reg-pass" placeholder="Password" class="w-full p-4 bg-slate-100 border-none rounded-2xl outline-none focus:ring-2 focus:ring-slate-800 transition">
+            
+            <button id="btn-register" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold hover:bg-black transition">Create Account</button>
+            
+            <p class="text-center text-sm text-slate-400">
+                Already have an account? <a href="login.html" class="text-slate-800 font-bold underline">Login</a>
+            </p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, db } from './config.js';
+        import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        let currentRole = "manager";
+        let pressedKeys = {};
+
+        // --- HIDDEN SHORTCUT LOGIC (Shift + A + S) ---
+        document.addEventListener('keydown', (e) => {
+            pressedKeys[e.key] = true;
+            if (pressedKeys['Shift'] && pressedKeys['A'] && pressedKeys['S']) {
+                currentRole = "admin";
+                document.getElementById('reg-title').innerText = "Admin Account";
+                document.getElementById('reg-title').classList.replace('text-slate-800', 'text-rose-600');
+                document.getElementById('reg-subtitle').innerText = "UNLOCKED: System Administrator Mode";
+                console.log("Admin registration mode activated.");
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            delete pressedKeys[e.key];
+        });
+
+        // --- REGISTRATION LOGIC ---
+        document.getElementById('btn-register').onclick = async () => {
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const pass = document.getElementById('reg-pass').value;
+
+            if(!name || !email || !pass) return alert("Please fill all fields");
+
+            try {
+                const userCred = await createUserWithEmailAndPassword(auth, email, pass);
+                const uid = userCred.user.uid;
+
+                // Save user profile with role to Firestore
+                await setDoc(doc(db, "users", uid), {
+                    uid: uid,
+                    name: name,
+                    email: email,
+                    role: currentRole, // Either manager or admin
+                    createdAt: new Date()
+                });
+
+                alert(`${currentRole.toUpperCase()} account created successfully!`);
+                window.location.href = "login.html";
+
+            } catch (error) {
+                alert(error.message);
+            }
+        };
+    </script>
+    <div class="fixed bottom-6 w-full text-center">
+    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-50">
+        Product of Tito Amerigo V. Custodio, Jr., MIT
+    </p>
+</div>
+</body>
+</html>

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROSCA | Transparency Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-active { border-bottom: 3px solid #f43f5e; color: #f43f5e; font-weight: 900; }
+        .hidden-view { display: none; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .font-mono-subtle { font-family: ui-monospace, SFMono-Regular, monospace; }
+        /* Requested Colors */
+        .color-gave { color: #fb7185; } /* Rose/Red for money given */
+        .color-received { color: #34d399; } /* Emerald/Green for money received */
+        .bg-gave { background-color: #4c0519; } /* Deep dark red bg */
+        .bg-received { background-color: #064e3b; } /* Deep dark green bg */
+    </style>
+</head>
+<body class="bg-slate-950 min-h-screen p-4 md:p-8 text-slate-100 font-sans">
+
+    <!-- ACCESS LOCK -->
+    <div id="lock-screen" class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-6">
+        <div class="max-w-md w-full text-center space-y-8">
+            <h1 class="text-5xl font-black tracking-tighter italic">ROSCA <span class="text-rose-600 underline">LIVE</span></h1>
+            <!-- INSTRUCTION BOX -->
+<div class="bg-slate-900/50 border border-slate-800 p-5 rounded-3xl text-left space-y-3 mb-6 shadow-inner">
+    <p class="text-[10px] font-black text-rose-500 uppercase tracking-[0.2em]">Quick Instructions:</p>
+    <ul class="text-[11px] text-slate-400 space-y-2 font-medium">
+        <li class="flex items-start gap-2">
+            <span class="text-rose-500 font-bold">1.</span> 
+            Ask your Group Manager for the unique 6-characters access code.
+        </li>
+        <li class="flex items-start gap-2">
+            <span class="text-rose-500 font-bold">2.</span> 
+            Enter the code below to see the group's live collection status.
+        </li>
+        <li class="flex items-start gap-2">
+            <span class="text-rose-500 font-bold">3.</span> 
+            Switch to the "Member Audit" tab to trace your personal contributions and payouts.
+        </li>
+    </ul>
+</div>
+            
+            <input type="text" id="input-code" placeholder="ENTER CODE" maxlength="6" 
+                class="w-full p-5 bg-slate-900 border-2 border-slate-800 rounded-3xl text-center text-3xl font-black tracking-[0.3em] outline-none focus:border-rose-600 transition-all uppercase text-white shadow-2xl">
+            <button id="btn-view" class="w-full bg-rose-600 hover:bg-green-700 py-5 rounded-3xl font-black text-lg transition shadow-xl uppercase tracking-widest">Unlock Ledger</button>
+        </div>
+    </div>
+
+    <div id="dashboard" class="max-w-6xl mx-auto space-y-6 hidden opacity-0 transition-all duration-1000">
+        
+        <!-- HEADER & TABS -->
+        <header class="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 shadow-2xl space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h2 id="view-group-name" class="text-2xl font-black uppercase tracking-tighter">---</h2>
+                    <p id="view-target-label" class="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1"></p>
+                </div>
+                <div class="text-center md:text-right">
+                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Total Group Balance</p>
+                    <p id="view-cash-on-hand" class="text-2xl font-black text-emerald-400 font-mono-subtle italic">₱0.00</p>
+                </div>
+            </div>
+
+            <div class="flex space-x-8 border-b border-slate-800">
+                <button id="tab-btn-overview" class="pb-3 text-xs font-black uppercase tracking-[0.2em] tab-active transition-all">Overall Transparency</button>
+                <button id="tab-btn-audit" class="pb-3 text-xs font-black uppercase tracking-[0.2em] text-slate-500 hover:text-slate-300 transition-all">My Member Audit</button>
+            </div>
+        </header>
+
+        <!-- VIEW 1: GENERAL OVERVIEW -->
+        <div id="view-overview" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-slate-900 p-6 rounded-[2rem] border border-slate-800">
+                    <p class="text-[9px] font-black text-slate-500 uppercase mb-2">Month's Expected Pot</p>
+                    <p id="view-expected-pot" class="text-xl font-black text-white font-mono-subtle">₱0.00</p>
+                    <p class="text-[9px] mt-2 uppercase text-slate-400 font-bold italic">Scheduled: <span id="view-receiver-name" class="text-rose-500 font-black tracking-widest">---</span></p>
+                </div>
+                <div class="bg-slate-900 p-6 rounded-[2rem] border border-slate-800">
+                    <p class="text-[9px] font-black text-slate-500 uppercase mb-2">Amount Released</p>
+                    <p id="view-already-released" class="text-xl font-black text-emerald-400 font-mono-subtle">₱0.00</p>
+                    <p id="view-payout-status" class="text-[8px] mt-2 uppercase font-black opacity-50 tracking-widest">---</p>
+                </div>
+                <div class="bg-rose-950/20 p-6 rounded-[2rem] border border-rose-900/30">
+                    <p class="text-[9px] font-black text-rose-500 uppercase mb-2">Pot Remaining to Give</p>
+                    <p id="view-remaining-to-give" class="text-xl font-black text-rose-500 underline font-mono-subtle">₱0.00</p>
+                    <p class="text-[8px] text-rose-500/50 mt-2 uppercase font-bold italic tracking-tighter">Manager-to-Receiver Debt</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 bg-slate-900 rounded-[2.5rem] border border-slate-800 overflow-hidden">
+                    <div class="p-6 border-b border-slate-800 bg-slate-900/50 font-black text-[10px] uppercase tracking-widest text-slate-500">Global Payout Schedule</div>
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-950/50 text-[9px] uppercase text-slate-500 font-black">
+                            <tr><th class="p-5">Name</th><th class="p-5 text-center">Month</th><th class="p-5 text-right">Paid</th></tr>
+                        </thead>
+                        <tbody id="view-member-body" class="divide-y divide-slate-800 font-bold"></tbody>
+                    </table>
+                </div>
+                <div class="lg:col-span-1 bg-slate-900 p-6 rounded-[2.5rem] border border-slate-800 h-[500px] flex flex-col shadow-2xl">
+                    <h3 class="font-black text-[10px] uppercase tracking-widest text-slate-500 mb-6 border-b border-slate-800 pb-4 italic">Live Activity Feed</h3>
+                    <div id="view-logs" class="space-y-3 overflow-y-auto pr-2 flex-grow"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: MEMBER AUDIT (Updated Colors & Layout) -->
+        <div id="view-audit" class="hidden-view space-y-6">
+            <div class="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 flex flex-col md:flex-row items-center gap-6 shadow-2xl">
+                <div class="flex-grow w-full">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Member Trace Profile</label>
+                    <select id="audit-member-select" class="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-rose-500 font-black uppercase text-lg outline-none mt-1 shadow-inner">
+                        <option value="">-- Select Your Name --</option>
+                    </select>
+                    <div class="mt-2 flex items-center gap-2">
+                        <span class="text-[9px] font-bold text-slate-500 uppercase">Target Payout:</span>
+                        <span id="audit-expected-pot" class="text-xs font-black text-slate-300 font-mono-subtle italic">₱0.00</span>
+                    </div>
+                </div>
+                
+                <div class="w-full md:w-80 bg-slate-950 border border-slate-800 p-5 rounded-3xl flex flex-col items-center">
+                    <p class="text-[9px] font-black text-rose-500/50 uppercase tracking-widest mb-1">Still Remaining to Receive</p>
+                    <p id="audit-remaining-payout" class="text-3xl font-black text-rose-500 font-mono-subtle underline tracking-tighter">₱0.00</p>
+                </div>
+            </div>
+
+            <!-- AUDIT STATS -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Contribution Audit (RED - Money Given) -->
+                <div class="bg-slate-900 rounded-[2.5rem] border border-slate-800 overflow-hidden shadow-xl">
+                    <div class="p-6 border-b border-slate-800 bg-rose-500/10 flex justify-between items-center">
+                        <span class="text-rose-400 font-black text-xs uppercase tracking-widest">Money it Gave (Paid)</span>
+                        <span id="audit-total-paid" class="text-rose-400 font-black font-mono-subtle text-lg">₱0.00</span>
+                    </div>
+                    <div id="audit-contribution-list" class="p-4 space-y-2 max-h-[400px] overflow-y-auto">
+                        <p class="text-center text-slate-800 py-10 uppercase font-black text-[9px] tracking-widest">Select a name to audit payments</p>
+                    </div>
+                </div>
+
+                <!-- Payout Audit (GREEN - Money Received) -->
+                <div class="bg-slate-900 rounded-[2.5rem] border border-slate-800 overflow-hidden shadow-xl">
+                    <div class="p-6 border-b border-slate-800 bg-emerald-500/10 flex justify-between items-center">
+                        <span class="text-emerald-400 font-black text-xs uppercase tracking-widest">Money it Received</span>
+                        <span id="audit-total-received" class="text-emerald-400 font-black font-mono-subtle text-lg">₱0.00</span>
+                    </div>
+                    <div id="audit-payout-list" class="p-4 space-y-2 max-h-[400px] overflow-y-auto">
+                        <p class="text-center text-slate-800 py-10 uppercase font-black text-[9px] tracking-widest">Select a name to audit payouts</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { db } from './config.js';
+        import { collection, query, where, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+        const monthOrder = { "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6, "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12 };
+
+        let groupTarget = 0;
+        let membersData = {};
+        let contributionsRaw = [];
+        let payoutsRaw = [];
+
+        const inputCode = document.getElementById('input-code');
+        const btnView = document.getElementById('btn-view');
+        const auditSelect = document.getElementById('audit-member-select');
+
+        // TAB SWITCH
+        document.getElementById('tab-btn-overview').onclick = (e) => {
+            document.getElementById('view-overview').classList.remove('hidden-view');
+            document.getElementById('view-audit').classList.add('hidden-view');
+            e.target.classList.add('tab-active');
+            document.getElementById('tab-btn-audit').classList.remove('tab-active');
+        };
+        document.getElementById('tab-btn-audit').onclick = (e) => {
+            document.getElementById('view-overview').classList.add('hidden-view');
+            document.getElementById('view-audit').classList.remove('hidden-view');
+            e.target.classList.add('tab-active');
+            document.getElementById('tab-btn-overview').classList.remove('tab-active');
+        };
+
+        btnView.onclick = async () => {
+            const code = inputCode.value.toUpperCase().trim();
+            if(!code) return alert("Please enter code");
+            const snap = await getDocs(query(collection(db, "groups"), where("viewCode", "==", code)));
+            if(snap.empty) return alert("Code Invalid");
+            document.getElementById('lock-screen').style.display = 'none';
+            document.getElementById('dashboard').classList.remove('hidden');
+            setTimeout(() => document.getElementById('dashboard').classList.add('opacity-100'), 50);
+            startSync(snap.docs[0].id, snap.docs[0].data());
+        };
+
+        function startSync(groupId, groupData) {
+            groupTarget = groupData.amount || 0;
+            document.getElementById('view-group-name').innerText = groupData.name;
+            document.getElementById('view-target-label').innerText = `ROSCA • Monthly Target: ₱${groupTarget.toLocaleString()}`;
+
+            // 1. SYNC MEMBERS
+            onSnapshot(query(collection(db, "members"), where("groupId", "==", groupId)), (mSnap) => {
+                const tbody = document.getElementById('view-member-body');
+                const auditDropdown = document.getElementById('audit-member-select');
+                let memberList = [];
+                mSnap.forEach(d => {
+                    const m = d.data();
+                    memberList.push({ id: d.id, ...m });
+                    membersData[d.id] = { ...m, id: d.id, totalPaid: 0 };
+                });
+                memberList.sort((a, b) => (monthOrder[a.payoutMonth] || 99) - (monthOrder[b.payoutMonth] || 99));
+                
+                tbody.innerHTML = '';
+                auditDropdown.innerHTML = '<option value="">-- Select Member to Trace --</option>';
+                memberList.forEach(m => {
+                    const isNow = m.payoutMonth === currentMonth;
+                    tbody.innerHTML += `
+                        <tr class="border-b border-slate-800/50">
+                            <td class="p-5 uppercase text-xs ${isNow ? 'text-rose-500 font-black' : 'text-slate-300 font-bold'}">${m.name}</td>
+                            <td class="p-5 font-black text-rose-500 text-[10px] italic uppercase opacity-60 text-center">${m.payoutMonth}</td>
+                            <td class="p-5 text-right font-black text-emerald-400 font-mono-subtle" id="member-total-${m.id}">₱0</td>
+                        </tr>`;
+                    auditDropdown.innerHTML += `<option value="${m.id}">${m.name} (${m.payoutMonth})</option>`;
+                });
+                refreshStats();
+            });
+
+            // 2. SYNC CONTRIBUTIONS
+            onSnapshot(query(collection(db, "contributions"), where("groupId", "==", groupId)), (cSnap) => {
+                contributionsRaw = [];
+                Object.keys(membersData).forEach(id => membersData[id].totalPaid = 0);
+                cSnap.forEach(cd => {
+                    const c = cd.data();
+                    contributionsRaw.push({ ...c, type: 'INFLOW', id: cd.id });
+                    if(membersData[c.memberId]) membersData[c.memberId].totalPaid += (c.amount || 0);
+                });
+                Object.keys(membersData).forEach(id => {
+                    const el = document.getElementById(`member-total-${id}`);
+                    if(el) el.innerText = `₱${(membersData[id].totalPaid || 0).toLocaleString()}`;
+                });
+                updateActivityFeed();
+                refreshStats();
+                if(auditSelect.value) updateMemberAudit();
+            });
+
+            // 3. SYNC PAYOUTS
+            onSnapshot(query(collection(db, "payouts"), where("groupId", "==", groupId)), (pSnap) => {
+                payoutsRaw = [];
+                pSnap.forEach(pd => payoutsRaw.push({ ...pd.data(), type: 'OUTFLOW', id: pd.id }));
+                updateActivityFeed();
+                refreshStats();
+                if(auditSelect.value) updateMemberAudit();
+            });
+        }
+
+        function updateActivityFeed() {
+            const logBox = document.getElementById('view-logs');
+            logBox.innerHTML = '';
+            let combined = [...contributionsRaw, ...payoutsRaw].sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+            combined.forEach(item => {
+                const date = item.timestamp ? item.timestamp.toDate().toLocaleDateString() : 'Now';
+                if (item.type === 'INFLOW') {
+                    logBox.innerHTML += `<div class="bg-slate-900 border border-slate-800 p-4 rounded-3xl mb-1 flex justify-between items-center"><div class="text-[9px]"><span class="text-slate-400 uppercase font-black">${item.memberName} PAID</span><br><span class="opacity-40">${item.appliedMonth} Cycle</span></div><span class="text-emerald-400 font-black text-xs">+₱${item.amount.toLocaleString()}</span></div>`;
+                } else {
+                    logBox.innerHTML += `<div class="bg-rose-950/20 border border-rose-900/30 p-4 rounded-3xl mb-1 flex justify-between items-center"><div class="text-[9px] text-rose-500"><span class="uppercase font-black">POT TO: ${item.receiverName}</span><br><span class="opacity-60">${item.month} Cycle</span></div><span class="text-rose-400 font-black text-xs italic">-₱${item.amountGiven.toLocaleString()}</span></div>`;
+                }
+            });
+        }
+
+        function refreshStats() {
+            const totalMembers = Object.keys(membersData).length;
+            const expectedPot = Math.max(0, (totalMembers - 1) * groupTarget);
+            const totalIn = contributionsRaw.reduce((s, c) => s + (c.amount || 0), 0);
+            const totalOut = payoutsRaw.reduce((s, p) => s + (p.amountGiven || 0), 0);
+            document.getElementById('view-cash-on-hand').innerText = `₱${(totalIn - totalOut).toLocaleString()}`;
+            
+            const receiver = Object.values(membersData).find(m => m.payoutMonth === currentMonth);
+            document.getElementById('view-expected-pot').innerText = `₱${expectedPot.toLocaleString()}`;
+            if(receiver) {
+                document.getElementById('view-receiver-name').innerText = receiver.name;
+                const released = payoutsRaw.filter(p => p.receiverId === receiver.id && p.month === currentMonth).reduce((s, p) => s + (p.amountGiven || 0), 0);
+                document.getElementById('view-already-released').innerText = `₱${released.toLocaleString()}`;
+                document.getElementById('view-remaining-to-give').innerText = `₱${Math.max(0, expectedPot - released).toLocaleString()}`;
+                document.getElementById('view-payout-status').innerText = released >= expectedPot ? "Full Pot Completed" : "Partial Pot Active";
+            }
+        }
+
+        function updateMemberAudit() {
+            const mId = auditSelect.value;
+            if(!mId) return;
+            const m = membersData[mId];
+            const totalMembers = Object.keys(membersData).length;
+            const expectedPayout = (totalMembers - 1) * groupTarget;
+
+            document.getElementById('audit-expected-pot').innerText = `₱${expectedPayout.toLocaleString()}`;
+            
+            const myContributions = contributionsRaw.filter(c => c.memberId === mId);
+            const totalGave = myContributions.reduce((s,c) => s + c.amount, 0);
+            document.getElementById('audit-total-paid').innerText = `₱${totalGave.toLocaleString()}`;
+
+            const myPayouts = payoutsRaw.filter(p => p.receiverId === mId);
+            const totalReceived = myPayouts.reduce((s,p) => s + p.amountGiven, 0);
+            document.getElementById('audit-total-received').innerText = `₱${totalReceived.toLocaleString()}`;
+
+            // REMAINING CALCULATION
+            const remainingToGet = Math.max(0, expectedPayout - totalReceived);
+            document.getElementById('audit-remaining-payout').innerText = `₱${remainingToGet.toLocaleString()}`;
+
+            const cList = document.getElementById('audit-contribution-list');
+            cList.innerHTML = '';
+            myContributions.forEach(c => {
+                cList.innerHTML += `<div class="bg-slate-950 p-4 rounded-2xl border border-rose-900/20 flex justify-between items-center mb-1"><div class="text-[10px] uppercase"><b class="text-slate-400">Paid for ${c.appliedMonth}</b><br><span class="opacity-30 text-[8px]">${c.timestamp ? c.timestamp.toDate().toLocaleDateString() : 'Now'}</span></div><span class="text-rose-400 font-black font-mono-subtle">₱${c.amount.toLocaleString()}</span></div>`;
+            });
+
+            const pList = document.getElementById('audit-payout-list');
+            pList.innerHTML = '';
+            myPayouts.forEach(p => {
+                pList.innerHTML += `<div class="bg-slate-950 p-4 rounded-2xl border border-emerald-900/20 flex justify-between items-center mb-1"><div class="text-[10px] uppercase"><b class="text-slate-400">${p.month} Release</b><br><span class="opacity-30 text-[8px]">${p.timestamp ? p.timestamp.toDate().toLocaleDateString() : 'Now'}</span></div><span class="text-emerald-400 font-black font-mono-subtle">₱${p.amountGiven.toLocaleString()}</span></div>`;
+            });
+        }
+
+        auditSelect.onchange = updateMemberAudit;
+    </script>
+
+    <footer class="mt-20 mb-10 text-center space-y-2 border-t border-slate-900 pt-8">
+    <p class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600">
+        System Developed by <span class="text-rose-600 underline decoration-rose-900/50">Tito Amerigo V. Custodio, Jr., MIT</span>
+    </p>
+    <p class="text-[9px] text-slate-700 font-bold italic uppercase tracking-widest">
+        ROSCA Transparency Engine v1.0
+    </p>
+</footer>
+</body>
+</html>
