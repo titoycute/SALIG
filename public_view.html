@@ -3,338 +3,340 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SALIG | Transparency Portal</title>
+    <title>SALIG | Member Portal</title>
     <link rel="icon" type="image/png" href="logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        .tab-active { border-bottom: 3px solid #f43f5e; color: #f43f5e; font-weight: 900; }
-        .hidden-view { display: none; }
+        .tab-active { border-bottom: 3px solid #e11d48; color: #e11d48; font-weight: 800; }
+        .hidden-view { display: none !important; }
         ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        .font-mono-subtle { font-family: ui-monospace, SFMono-Regular, monospace; }
-        /* Requested Colors */
-        .color-gave { color: #fb7185; } /* Rose/Red for money given */
-        .color-received { color: #34d399; } /* Emerald/Green for money received */
-        .bg-gave { background-color: #4c0519; } /* Deep dark red bg */
-        .bg-received { background-color: #064e3b; } /* Deep dark green bg */
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .modal-bg { background-color: rgba(0,0,0,0.7); backdrop-filter: blur(5px); }
+        .receiver-row { background-color: #f0fdf4; border-left: 4px solid #166534; }
     </style>
 </head>
-<body class="bg-slate-950 min-h-screen p-4 md:p-8 text-slate-100 font-sans">
+<body class="bg-yellow-50 min-h-screen p-4 md:p-8 text-slate-800 font-sans">
 
-    <!-- ACCESS LOCK -->
-    <div id="lock-screen" class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-6">
-        <div class="max-w-md w-full text-center space-y-8">
-            <h1 class="text-5xl font-black tracking-tighter italic">SALIG <span class="text-rose-600 underline">LIVE</span></h1>
-            <!-- INSTRUCTION BOX -->
-<div class="bg-slate-900/50 border border-slate-800 p-5 rounded-3xl text-left space-y-3 mb-6 shadow-inner">
-    <p class="text-[10px] font-black text-rose-500 uppercase tracking-[0.2em]">Quick Instructions:</p>
-    <ul class="text-[11px] text-slate-400 space-y-2 font-medium">
-        <li class="flex items-start gap-2">
-            <span class="text-rose-500 font-bold">1.</span> 
-            Ask your Group Manager for the unique 6-characters access code.
-        </li>
-        <li class="flex items-start gap-2">
-            <span class="text-rose-500 font-bold">2.</span> 
-            Enter the code below to see the group's live collection status.
-        </li>
-        <li class="flex items-start gap-2">
-            <span class="text-rose-500 font-bold">3.</span> 
-            Switch to the "Member Audit" tab to trace your personal contributions and payouts.
-        </li>
-    </ul>
-</div>
-            
-            <input type="text" id="input-code" placeholder="ENTER CODE" maxlength="6" 
-                class="w-full p-5 bg-slate-900 border-2 border-slate-800 rounded-3xl text-center text-3xl font-black tracking-[0.3em] outline-none focus:border-rose-600 transition-all uppercase text-white shadow-2xl">
-            <button id="btn-view" class="w-full bg-rose-600 hover:bg-green-700 py-5 rounded-3xl font-black text-lg transition shadow-xl uppercase tracking-widest">Unlock Ledger</button>
+    <!-- ACCESS PORTAL (Gatekeeper) -->
+    <div id="access-portal" class="fixed inset-0 z-[100] bg-slate-900 flex items-center justify-center p-6">
+        <div class="max-w-sm w-full text-center space-y-8">
+            <img src="logo.png" alt="SALIG" class="h-20 mx-auto mb-4">
+            <div class="space-y-2">
+                <h2 class="text-white text-3xl font-black uppercase italic tracking-tighter">Salig <span class="text-rose-600">Hub</span></h2>
+                <p class="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em]">Enter Group View Code to Unlock</p>
+            </div>
+            <div class="space-y-4">
+                <input type="text" id="view-code-input" maxlength="6" placeholder="------" class="w-full bg-slate-800 border-none text-white text-center text-4xl font-black py-6 rounded-[2rem] tracking-[0.5em] focus:ring-2 focus:ring-rose-600 uppercase">
+                <button id="btn-access-group" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-black py-5 rounded-[2rem] uppercase text-sm tracking-widest shadow-xl transition-all active:scale-95">Access Group</button>
+            </div>
         </div>
     </div>
 
-    <div id="dashboard" class="max-w-6xl mx-auto space-y-6 hidden opacity-0 transition-all duration-1000">
-        
-        <!-- HEADER & TABS -->
-        <header class="bg-slate-900 p-6 rounded-[2rem] border border-slate-800 shadow-2xl space-y-6">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                <div>
-                    <h2 id="view-group-name" class="text-2xl font-black uppercase tracking-tighter">---</h2>
-                    <p id="view-target-label" class="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1"></p>
+    <!-- E-RECEIPT MODAL -->
+    <div id="receipt-modal" class="fixed inset-0 z-[60] hidden modal-bg flex items-center justify-center p-4">
+        <div class="max-w-sm w-full space-y-4">
+            <div id="receipt-capture" class="bg-white rounded-[2rem] p-8 shadow-2xl border border-slate-200 relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 w-24 h-24 bg-green-50 rounded-full opacity-50"></div>
+                <div class="text-center space-y-2 mb-6">
+                    <img src="logo.png" alt="SALIG" class="h-10 mx-auto mb-2">
+                    <h3 class="text-xl font-black italic uppercase tracking-tighter">Official <span class="text-rose-600">Receipt</span></h3>
+                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em]">Digital Member Copy</p>
                 </div>
-                <div class="text-center md:text-right">
-                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Total Group Balance</p>
-                    <p id="view-cash-on-hand" class="text-2xl font-black text-emerald-400 font-mono-subtle italic">₱0.00</p>
+                <div class="border-y border-dashed border-slate-300 py-6 my-6 space-y-4">
+                    <div class="flex justify-between items-end"><span class="text-[9px] font-black text-slate-400 uppercase">Type</span><span id="rcpt-type" class="text-xs font-black text-slate-800 uppercase italic">---</span></div>
+                    <div class="flex justify-between items-end"><span class="text-[9px] font-black text-slate-400 uppercase">Name</span><span id="rcpt-name" class="text-sm font-black text-slate-900 uppercase">---</span></div>
+                    <div class="flex justify-between items-end"><span class="text-[9px] font-black text-slate-400 uppercase">Turn</span><span id="rcpt-cycle" class="text-xs font-bold text-rose-600">---</span></div>
+                    <div class="pt-4 flex justify-between items-center"><span class="text-[10px] font-black text-slate-800 uppercase">Amount</span><span id="rcpt-amt" class="text-2xl font-black text-slate-900">₱0.00</span></div>
                 </div>
+                <div class="space-y-2 mb-6 text-[7px] font-bold text-slate-500">
+                    <div class="flex justify-between uppercase"><span>Ref No.</span><span id="rcpt-ref" class="font-mono">---</span></div>
+                    <div class="flex justify-between uppercase"><span>Date</span><span id="rcpt-date">---</span></div>
+                </div>
+                <div class="text-center"><div class="inline-block px-4 py-1 border-2 border-green-600 rounded-full"><span class="text-[10px] font-black text-green-600 uppercase italic tracking-widest">Verified Salig Hub</span></div></div>
             </div>
+            <div class="flex gap-2">
+                <button onclick="document.getElementById('receipt-modal').classList.add('hidden')" class="flex-1 py-4 bg-white rounded-2xl font-black text-xs uppercase text-slate-400">Close</button>
+                <button id="btn-download-receipt" class="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase shadow-xl">Save Image</button>
+            </div>
+        </div>
+    </div>
 
-            <div class="flex space-x-8 border-b border-slate-800">
-                <button id="tab-btn-overview" class="pb-3 text-xs font-black uppercase tracking-[0.2em] tab-active transition-all">Overall Transparency</button>
-                <button id="tab-btn-audit" class="pb-3 text-xs font-black uppercase tracking-[0.2em] text-slate-500 hover:text-slate-300 transition-all">My Member Audit</button>
+    <!-- MAIN CONTENT -->
+    <div id="main-content" class="max-w-6xl mx-auto space-y-6 hidden-view">
+        <!-- HEADER -->
+        <header class="flex justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200">
+            <div class="flex items-center gap-4">
+                <img src="logo.png" alt="SALIG" class="h-10 w-auto">
+                <div>
+                    <h1 id="group-name-display" class="text-xl font-black text-slate-800 italic uppercase tracking-tighter">---</h1>
+                    <p id="target-amount-badge" class="text-[9px] text-rose-600 font-black uppercase tracking-widest">₱0 Per Turn</p>
+                </div>
             </div>
+            <button onclick="location.reload()" class="bg-slate-100 p-3 rounded-full hover:bg-slate-200">🔄</button>
         </header>
 
-        <!-- VIEW 1: GENERAL OVERVIEW -->
-        <div id="view-overview" class="space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-slate-900 p-6 rounded-[2rem] border border-slate-800">
-                    <p class="text-[9px] font-black text-slate-500 uppercase mb-2">Month's Expected Pot</p>
-                    <p id="view-expected-pot" class="text-xl font-black text-white font-mono-subtle">₱0.00</p>
-                    <p class="text-[9px] mt-2 uppercase text-slate-400 font-bold italic">Scheduled: <span id="view-receiver-name" class="text-rose-500 font-black tracking-widest">---</span></p>
+        <!-- NAVIGATION TABS -->
+        <div class="flex space-x-8 border-b border-slate-200 px-4 font-black text-[10px] uppercase">
+            <button id="tab-btn-directory" class="pb-3 tab-active tracking-widest">Member Directory</button>
+            <button id="tab-btn-monthly" class="pb-3 text-slate-400 tracking-widest transition-all">Monthly Tracker</button>
+            <button id="tab-btn-overview" class="pb-3 text-slate-400 tracking-widest transition-all">Overall Activity</button>
+        </div>
+
+        <!-- VIEW 1: MEMBER DIRECTORY -->
+        <div id="view-directory" class="space-y-6">
+            <div class="relative"><input type="text" id="search-member" placeholder="Search your name..." class="w-full p-5 bg-white rounded-2xl shadow-sm border-none outline-none focus:ring-2 focus:ring-rose-500 font-bold uppercase text-xs tracking-widest"></div>
+            <div id="member-directory-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+
+        <!-- VIEW 2: MONTHLY TRACKER -->
+        <div id="view-monthly" class="hidden-view space-y-6">
+            <div class="bg-white p-6 rounded-[2rem] border shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-[10px] font-black uppercase text-slate-400">Select Cycle:</span>
+                    <select id="monthly-cycle-filter" class="p-2 border rounded-xl bg-slate-50 font-black outline-none text-rose-600 text-xs cursor-pointer"></select>
                 </div>
-                <div class="bg-slate-900 p-6 rounded-[2rem] border border-slate-800">
-                    <p class="text-[9px] font-black text-slate-500 uppercase mb-2">Amount Released</p>
-                    <p id="view-already-released" class="text-xl font-black text-emerald-400 font-mono-subtle">₱0.00</p>
-                    <p id="view-payout-status" class="text-[8px] mt-2 uppercase font-black opacity-50 tracking-widest">---</p>
-                </div>
-                <div class="bg-rose-950/20 p-6 rounded-[2rem] border border-rose-900/30">
-                    <p class="text-[9px] font-black text-rose-500 uppercase mb-2">Pot Remaining to Give</p>
-                    <p id="view-remaining-to-give" class="text-xl font-black text-rose-500 underline font-mono-subtle">₱0.00</p>
-                    <p class="text-[8px] text-rose-500/50 mt-2 uppercase font-bold italic tracking-tighter">Manager-to-Receiver Debt</p>
+                <div class="text-center md:text-right">
+                    <p class="text-[8px] font-black text-slate-400 uppercase">Target Pot for this Month</p>
+                    <p id="monthly-target-pot" class="text-lg font-black text-slate-800">₱0</p>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2 bg-slate-900 rounded-[2.5rem] border border-slate-800 overflow-hidden">
-                    <div class="p-6 border-b border-slate-800 bg-slate-900/50 font-black text-[10px] uppercase tracking-widest text-slate-500">Global Payout Schedule</div>
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-slate-950/50 text-[9px] uppercase text-slate-500 font-black">
-                            <tr><th class="p-5">Name</th><th class="p-5 text-center">Month</th><th class="p-5 text-right">Paid</th></tr>
-                        </thead>
-                        <tbody id="view-member-body" class="divide-y divide-slate-800 font-bold"></tbody>
-                    </table>
+            <!-- Receiver Spotlight + Pot Status -->
+            <div id="monthly-receiver-card" class="bg-green-700 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl">💰</div>
+                <div>
+                    <p class="text-[9px] font-black uppercase tracking-[0.3em] mb-2 opacity-60">Turn Receiver</p>
+                    <h2 id="monthly-receiver-name" class="text-4xl font-black italic uppercase tracking-tighter">---</h2>
                 </div>
-                <div class="lg:col-span-1 bg-slate-900 p-6 rounded-[2.5rem] border border-slate-800 h-[500px] flex flex-col shadow-2xl">
-                    <h3 class="font-black text-[10px] uppercase tracking-widest text-slate-500 mb-6 border-b border-slate-800 pb-4 italic">Live Activity Feed</h3>
-                    <div id="view-logs" class="space-y-3 overflow-y-auto pr-2 flex-grow"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white/10 p-4 rounded-2xl border border-white/10">
+                        <p class="text-[8px] font-black uppercase opacity-60 mb-1">Actually Released</p>
+                        <p id="monthly-pot-released" class="text-xl font-black italic">₱0</p>
+                    </div>
+                    <div class="bg-rose-500 p-4 rounded-2xl shadow-lg border border-rose-400">
+                        <p class="text-[8px] font-black uppercase mb-1">Pending Balance</p>
+                        <p id="monthly-pot-pending" class="text-xl font-black italic">₱0</p>
+                    </div>
                 </div>
+            </div>
+
+            <div class="bg-white rounded-[2rem] border overflow-hidden shadow-sm">
+                <table class="w-full text-left text-[10px] uppercase font-bold">
+                    <thead class="bg-slate-50 text-slate-400">
+                        <tr><th class="p-4">Member / Description</th><th class="p-4">Paid / Given</th><th class="p-4 text-right">Status</th></tr>
+                    </thead>
+                    <tbody id="monthly-tracker-body" class="divide-y divide-slate-50"></tbody>
+                </table>
             </div>
         </div>
 
-        <!-- VIEW 2: MEMBER AUDIT (Updated Colors & Layout) -->
-        <div id="view-audit" class="hidden-view space-y-6">
-            <div class="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 flex flex-col md:flex-row items-center gap-6 shadow-2xl">
-                <div class="flex-grow w-full">
-                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Member Trace Profile</label>
-                    <select id="audit-member-select" class="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl text-rose-500 font-black uppercase text-lg outline-none mt-1 shadow-inner">
-                        <option value="">-- Select Your Name --</option>
-                    </select>
-                    <div class="mt-2 flex items-center gap-2">
-                        <span class="text-[9px] font-bold text-slate-500 uppercase">Target Payout:</span>
-                        <span id="audit-expected-pot" class="text-xs font-black text-slate-300 font-mono-subtle italic">₱0.00</span>
-                    </div>
+        <!-- VIEW 3: OVERALL OVERVIEW -->
+        <div id="view-overview" class="hidden-view space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white p-8 rounded-[2rem] border shadow-sm text-center">
+                    <p class="text-[9px] text-slate-400 uppercase font-black mb-1">Group Cash on Hand</p>
+                    <p id="stat-cash-on-hand" class="text-3xl font-black text-green-700 italic">₱0</p>
                 </div>
-                
-                <div class="w-full md:w-80 bg-slate-950 border border-slate-800 p-5 rounded-3xl flex flex-col items-center">
-                    <p class="text-[9px] font-black text-rose-500/50 uppercase tracking-widest mb-1">Still Remaining to Receive</p>
-                    <p id="audit-remaining-payout" class="text-3xl font-black text-rose-500 font-mono-subtle underline tracking-tighter">₱0.00</p>
+                <div class="bg-slate-900 p-8 rounded-[2rem] shadow-xl text-center text-white">
+                    <p class="text-[9px] text-slate-400 uppercase font-black mb-1">Unreleased Pot Debt (Total)</p>
+                    <p id="stat-pot-debt" class="text-3xl font-black text-rose-500 italic">₱0</p>
                 </div>
             </div>
-
-            <!-- AUDIT STATS -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Contribution Audit (RED - Money Given) -->
-                <div class="bg-slate-900 rounded-[2.5rem] border border-slate-800 overflow-hidden shadow-xl">
-                    <div class="p-6 border-b border-slate-800 bg-rose-500/10 flex justify-between items-center">
-                        <span class="text-rose-400 font-black text-xs uppercase tracking-widest">Money it Gave (Paid)</span>
-                        <span id="audit-total-paid" class="text-rose-400 font-black font-mono-subtle text-lg">₱0.00</span>
-                    </div>
-                    <div id="audit-contribution-list" class="p-4 space-y-2 max-h-[400px] overflow-y-auto">
-                        <p class="text-center text-slate-800 py-10 uppercase font-black text-[9px] tracking-widest">Select a name to audit payments</p>
-                    </div>
-                </div>
-
-                <!-- Payout Audit (GREEN - Money Received) -->
-                <div class="bg-slate-900 rounded-[2.5rem] border border-slate-800 overflow-hidden shadow-xl">
-                    <div class="p-6 border-b border-slate-800 bg-emerald-500/10 flex justify-between items-center">
-                        <span class="text-emerald-400 font-black text-xs uppercase tracking-widest">Money it Received</span>
-                        <span id="audit-total-received" class="text-emerald-400 font-black font-mono-subtle text-lg">₱0.00</span>
-                    </div>
-                    <div id="audit-payout-list" class="p-4 space-y-2 max-h-[400px] overflow-y-auto">
-                        <p class="text-center text-slate-800 py-10 uppercase font-black text-[9px] tracking-widest">Select a name to audit payouts</p>
-                    </div>
-                </div>
+            <div class="bg-white rounded-[2rem] border overflow-hidden shadow-sm">
+                <table class="w-full text-left text-[10px] uppercase font-bold">
+                    <thead class="bg-slate-50 text-slate-400">
+                        <tr><th class="p-4">Date</th><th class="p-4">Description</th><th class="p-4 text-right">Amount</th></tr>
+                    </thead>
+                    <tbody id="overall-log-body" class="divide-y divide-slate-50"></tbody>
+                </table>
             </div>
         </div>
-
     </div>
 
     <script type="module">
         import { db } from './config.js';
         import { collection, query, where, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const currentMonth = new Date().toLocaleString('default', { month: 'long' });
-        const monthOrder = { "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6, "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12 };
-
+        let rawMembers = [], rawContr = [], rawPayouts = [];
         let groupTarget = 0;
-        let membersData = {};
-        let contributionsRaw = [];
-        let payoutsRaw = [];
 
-        const inputCode = document.getElementById('input-code');
-        const btnView = document.getElementById('btn-view');
-        const auditSelect = document.getElementById('audit-member-select');
+        const tabBtns = [document.getElementById('tab-btn-directory'), document.getElementById('tab-btn-monthly'), document.getElementById('tab-btn-overview')];
+        const views = [document.getElementById('view-directory'), document.getElementById('view-monthly'), document.getElementById('view-overview')];
+        
+        tabBtns.forEach((btn, i) => {
+            btn.onclick = () => {
+                tabBtns.forEach(b => b.classList.remove('tab-active', 'text-rose-600'));
+                views.forEach(v => v.classList.add('hidden-view'));
+                btn.classList.add('tab-active');
+                views[i].classList.remove('hidden-view');
+            };
+        });
 
-        // TAB SWITCH
-        document.getElementById('tab-btn-overview').onclick = (e) => {
-            document.getElementById('view-overview').classList.remove('hidden-view');
-            document.getElementById('view-audit').classList.add('hidden-view');
-            e.target.classList.add('tab-active');
-            document.getElementById('tab-btn-audit').classList.remove('tab-active');
-        };
-        document.getElementById('tab-btn-audit').onclick = (e) => {
-            document.getElementById('view-overview').classList.add('hidden-view');
-            document.getElementById('view-audit').classList.remove('hidden-view');
-            e.target.classList.add('tab-active');
-            document.getElementById('tab-btn-overview').classList.remove('tab-active');
-        };
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            if (code) verifyAndLoad(code.toUpperCase());
+        });
 
-        btnView.onclick = async () => {
-            const code = inputCode.value.toUpperCase().trim();
-            if(!code) return alert("Please enter code");
-            const snap = await getDocs(query(collection(db, "groups"), where("viewCode", "==", code)));
-            if(snap.empty) return alert("Code Invalid");
-            document.getElementById('lock-screen').style.display = 'none';
-            document.getElementById('dashboard').classList.remove('hidden');
-            setTimeout(() => document.getElementById('dashboard').classList.add('opacity-100'), 50);
-            startSync(snap.docs[0].id, snap.docs[0].data());
+        document.getElementById('btn-access-group').onclick = () => {
+            const code = document.getElementById('view-code-input').value.trim().toUpperCase();
+            verifyAndLoad(code);
         };
 
-        function startSync(groupId, groupData) {
-            groupTarget = groupData.amount || 0;
-            document.getElementById('view-group-name').innerText = groupData.name;
-            document.getElementById('view-target-label').innerText = `ROSCA • Monthly Target: ₱${groupTarget.toLocaleString()}`;
+        async function verifyAndLoad(code) {
+            const q = query(collection(db, "groups"), where("viewCode", "==", code));
+            const snap = await getDocs(q);
+            if (snap.empty) return alert("Invalid Code");
 
-            // 1. SYNC MEMBERS
-            onSnapshot(query(collection(db, "members"), where("groupId", "==", groupId)), (mSnap) => {
-                const tbody = document.getElementById('view-member-body');
-                const auditDropdown = document.getElementById('audit-member-select');
-                let memberList = [];
-                mSnap.forEach(d => {
-                    const m = d.data();
-                    memberList.push({ id: d.id, ...m });
-                    membersData[d.id] = { ...m, id: d.id, totalPaid: 0 };
-                });
-                memberList.sort((a, b) => (monthOrder[a.payoutMonth] || 99) - (monthOrder[b.payoutMonth] || 99));
-                
-                tbody.innerHTML = '';
-                auditDropdown.innerHTML = '<option value="">-- Select Member to Trace --</option>';
-                memberList.forEach(m => {
-                    const isNow = m.payoutMonth === currentMonth;
-                    tbody.innerHTML += `
-                        <tr class="border-b border-slate-800/50">
-                            <td class="p-5 uppercase text-xs ${isNow ? 'text-rose-500 font-black' : 'text-slate-300 font-bold'}">${m.name}</td>
-                            <td class="p-5 font-black text-rose-500 text-[10px] italic uppercase opacity-60 text-center">${m.payoutMonth}</td>
-                            <td class="p-5 text-right font-black text-emerald-400 font-mono-subtle" id="member-total-${m.id}">₱0</td>
-                        </tr>`;
-                    auditDropdown.innerHTML += `<option value="${m.id}">${m.name} (${m.payoutMonth})</option>`;
-                });
-                refreshStats();
+            const gDoc = snap.docs[0];
+            document.getElementById('access-portal').classList.add('hidden-view');
+            document.getElementById('main-content').classList.remove('hidden-view');
+            document.getElementById('group-name-display').innerText = gDoc.data().name;
+            document.getElementById('target-amount-badge').innerText = `₱${gDoc.data().amount.toLocaleString()} Per Turn`;
+            groupTarget = gDoc.data().amount;
+
+            startDataSync(gDoc.id);
+        }
+
+        function startDataSync(groupId) {
+            onSnapshot(query(collection(db, "members"), where("groupId", "==", groupId)), s => {
+                rawMembers = s.docs.map(d => ({ id: d.id, ...d.data() }));
+                updateCycleSelectors(); refreshUI();
             });
-
-            // 2. SYNC CONTRIBUTIONS
-            onSnapshot(query(collection(db, "contributions"), where("groupId", "==", groupId)), (cSnap) => {
-                contributionsRaw = [];
-                Object.keys(membersData).forEach(id => membersData[id].totalPaid = 0);
-                cSnap.forEach(cd => {
-                    const c = cd.data();
-                    contributionsRaw.push({ ...c, type: 'INFLOW', id: cd.id });
-                    if(membersData[c.memberId]) membersData[c.memberId].totalPaid += (c.amount || 0);
-                });
-                Object.keys(membersData).forEach(id => {
-                    const el = document.getElementById(`member-total-${id}`);
-                    if(el) el.innerText = `₱${(membersData[id].totalPaid || 0).toLocaleString()}`;
-                });
-                updateActivityFeed();
-                refreshStats();
-                if(auditSelect.value) updateMemberAudit();
+            onSnapshot(query(collection(db, "contributions"), where("groupId", "==", groupId)), s => {
+                rawContr = s.docs.map(d => ({ id: d.id, ...d.data() }));
+                refreshUI();
             });
-
-            // 3. SYNC PAYOUTS
-            onSnapshot(query(collection(db, "payouts"), where("groupId", "==", groupId)), (pSnap) => {
-                payoutsRaw = [];
-                pSnap.forEach(pd => payoutsRaw.push({ ...pd.data(), type: 'OUTFLOW', id: pd.id }));
-                updateActivityFeed();
-                refreshStats();
-                if(auditSelect.value) updateMemberAudit();
+            onSnapshot(query(collection(db, "payouts"), where("groupId", "==", groupId)), s => {
+                rawPayouts = s.docs.map(d => ({ id: d.id, ...d.data() }));
+                refreshUI();
             });
         }
 
-        function updateActivityFeed() {
-            const logBox = document.getElementById('view-logs');
-            logBox.innerHTML = '';
-            let combined = [...contributionsRaw, ...payoutsRaw].sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-            combined.forEach(item => {
-                const date = item.timestamp ? item.timestamp.toDate().toLocaleDateString() : 'Now';
-                if (item.type === 'INFLOW') {
-                    logBox.innerHTML += `<div class="bg-slate-900 border border-slate-800 p-4 rounded-3xl mb-1 flex justify-between items-center"><div class="text-[9px]"><span class="text-slate-400 uppercase font-black">${item.memberName} PAID</span><br><span class="opacity-40">${item.appliedMonth} Cycle</span></div><span class="text-emerald-400 font-black text-xs">+₱${item.amount.toLocaleString()}</span></div>`;
-                } else {
-                    logBox.innerHTML += `<div class="bg-rose-950/20 border border-rose-900/30 p-4 rounded-3xl mb-1 flex justify-between items-center"><div class="text-[9px] text-rose-500"><span class="uppercase font-black">POT TO: ${item.receiverName}</span><br><span class="opacity-60">${item.month} Cycle</span></div><span class="text-rose-400 font-black text-xs italic">-₱${item.amountGiven.toLocaleString()}</span></div>`;
-                }
-            });
+        function updateCycleSelectors() {
+            const cycles = [...new Set(rawMembers.map(m => `${m.payoutMonth} ${m.payoutYear}`))];
+            const el = document.getElementById('monthly-cycle-filter');
+            const prev = el.value;
+            el.innerHTML = cycles.map(c => `<option value="${c}" ${c === prev ? 'selected' : ''}>${c}</option>`).join('');
         }
 
-        function refreshStats() {
-            const totalMembers = Object.keys(membersData).length;
-            const expectedPot = Math.max(0, (totalMembers - 1) * groupTarget);
-            const totalIn = contributionsRaw.reduce((s, c) => s + (c.amount || 0), 0);
-            const totalOut = payoutsRaw.reduce((s, p) => s + (p.amountGiven || 0), 0);
-            document.getElementById('view-cash-on-hand').innerText = `₱${(totalIn - totalOut).toLocaleString()}`;
+        function refreshUI() {
+            renderMemberDirectory();
+            renderMonthlyTracker();
+            renderOverallOverview();
+        }
+
+        function renderMemberDirectory() {
+            const container = document.getElementById('member-directory-list');
+            const search = document.getElementById('search-member').value.toUpperCase();
+            container.innerHTML = '';
             
-            const receiver = Object.values(membersData).find(m => m.payoutMonth === currentMonth);
-            document.getElementById('view-expected-pot').innerText = `₱${expectedPot.toLocaleString()}`;
-            if(receiver) {
-                document.getElementById('view-receiver-name').innerText = receiver.name;
-                const released = payoutsRaw.filter(p => p.receiverId === receiver.id && p.month === currentMonth).reduce((s, p) => s + (p.amountGiven || 0), 0);
-                document.getElementById('view-already-released').innerText = `₱${released.toLocaleString()}`;
-                document.getElementById('view-remaining-to-give').innerText = `₱${Math.max(0, expectedPot - released).toLocaleString()}`;
-                document.getElementById('view-payout-status').innerText = released >= expectedPot ? "Full Pot Completed" : "Partial Pot Active";
-            }
+            rawMembers.forEach(m => {
+                if (search && !m.name.toUpperCase().includes(search)) return;
+                const contr = rawContr.filter(c => c.memberId === m.id);
+                const pays = rawPayouts.filter(p => p.receiverId === m.id);
+                const totalPaid = contr.reduce((s, c) => s + c.amount, 0);
+                const totalRecd = pays.reduce((s, p) => s + p.amountGiven, 0);
+
+                let historyHtml = '';
+                [...contr.map(c => ({...c, type: 'IN'})), ...pays.map(p => ({...p, type: 'OUT'}))]
+                .sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0)).forEach(tx => {
+                    const date = tx.timestamp ? tx.timestamp.toDate().toLocaleString('en-PH', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '...';
+                    const isOut = tx.type === 'OUT';
+                    const amount = isOut ? tx.amountGiven : tx.amount;
+                    historyHtml += `<div onclick="window.reissueReceipt('${isOut ? 'Pot Release' : 'Contribution'}', '${m.name.replace(/'/g, "\\'")}', '${isOut ? tx.month+' '+tx.year : tx.appliedMonth+' '+tx.appliedYear}', ${amount}, '${tx.id}', '${date}')" class="flex justify-between items-center py-2 px-2 hover:bg-yellow-50 rounded-xl cursor-pointer group transition-all"><div class="flex flex-col"><span class="text-[7px] text-slate-400 font-black">${date}</span><span class="text-[8px] font-bold text-slate-600 uppercase">${isOut ? 'POT RECEIVED' : 'PAID ' + tx.appliedMonth}</span></div><span class="text-[10px] font-black ${isOut ? 'text-rose-600' : 'text-green-600'}">${isOut ? '-' : '+'}${amount.toLocaleString()} 🧾</span></div>`;
+                });
+
+                container.innerHTML += `<div class="bg-white rounded-[2rem] border p-6 shadow-sm"><div class="mb-4 text-center"><h3 class="font-black text-slate-800 uppercase italic">${m.name}</h3><p class="text-[8px] text-rose-600 font-black italic uppercase">${m.payoutMonth} ${m.payoutYear} Turn</p></div><div class="grid grid-cols-2 gap-2 mb-4"><div class="bg-green-50 p-3 rounded-2xl text-center"><p class="text-[7px] text-green-600 font-black mb-1">PAID</p><p class="text-sm font-black">₱${totalPaid.toLocaleString()}</p></div><div class="bg-slate-900 p-3 rounded-2xl text-center text-white"><p class="text-[7px] text-slate-400 font-black mb-1">REC'D</p><p class="text-sm font-black">₱${totalRecd.toLocaleString()}</p></div></div><div class="max-h-32 overflow-y-auto">${historyHtml || '<p class="text-center py-4 text-[8px] uppercase font-black opacity-20">No Records</p>'}</div></div>`;
+            });
         }
 
-        function updateMemberAudit() {
-            const mId = auditSelect.value;
-            if(!mId) return;
-            const m = membersData[mId];
-            const totalMembers = Object.keys(membersData).length;
-            const expectedPayout = (totalMembers - 1) * groupTarget;
-
-            document.getElementById('audit-expected-pot').innerText = `₱${expectedPayout.toLocaleString()}`;
+        function renderMonthlyTracker() {
+            const filter = document.getElementById('monthly-cycle-filter').value;
+            if (!filter) return;
+            const [fM, fY] = filter.split(' ');
             
-            const myContributions = contributionsRaw.filter(c => c.memberId === mId);
-            const totalGave = myContributions.reduce((s,c) => s + c.amount, 0);
-            document.getElementById('audit-total-paid').innerText = `₱${totalGave.toLocaleString()}`;
+            const receiver = rawMembers.find(m => m.payoutMonth === fM && m.payoutYear == fY);
+            const expectedPot = (rawMembers.length - 1) * groupTarget;
+            const releasedToRec = rawPayouts.filter(p => p.month === fM && p.year == fY).reduce((s, p) => s + p.amountGiven, 0);
 
-            const myPayouts = payoutsRaw.filter(p => p.receiverId === mId);
-            const totalReceived = myPayouts.reduce((s,p) => s + p.amountGiven, 0);
-            document.getElementById('audit-total-received').innerText = `₱${totalReceived.toLocaleString()}`;
+            document.getElementById('monthly-receiver-name').innerText = receiver ? receiver.name : "Not Assigned";
+            document.getElementById('monthly-target-pot').innerText = `₱${expectedPot.toLocaleString()}`;
+            document.getElementById('monthly-pot-released').innerText = `₱${releasedToRec.toLocaleString()}`;
+            document.getElementById('monthly-pot-pending').innerText = `₱${Math.max(0, expectedPot - releasedToRec).toLocaleString()}`;
 
-            // REMAINING CALCULATION
-            const remainingToGet = Math.max(0, expectedPayout - totalReceived);
-            document.getElementById('audit-remaining-payout').innerText = `₱${remainingToGet.toLocaleString()}`;
+            const tbody = document.getElementById('monthly-tracker-body');
+            tbody.innerHTML = '';
 
-            const cList = document.getElementById('audit-contribution-list');
-            cList.innerHTML = '';
-            myContributions.forEach(c => {
-                cList.innerHTML += `<div class="bg-slate-950 p-4 rounded-2xl border border-rose-900/20 flex justify-between items-center mb-1"><div class="text-[10px] uppercase"><b class="text-slate-400">Paid for ${c.appliedMonth}</b><br><span class="opacity-30 text-[8px]">${c.timestamp ? c.timestamp.toDate().toLocaleDateString() : 'Now'}</span></div><span class="text-rose-400 font-black font-mono-subtle">₱${c.amount.toLocaleString()}</span></div>`;
+            // Render members' contributions for this month
+            rawMembers.forEach(m => {
+                const isRec = (m.payoutMonth === fM && m.payoutYear == fY);
+                const contributions = rawContr.filter(c => c.memberId === m.id && c.appliedMonth === fM && c.appliedYear == fY);
+                const paid = contributions.reduce((s, c) => s + c.amount, 0);
+                const bal = groupTarget - paid;
+
+                let statusHtml = isRec ? `<span class="receiver-badge italic">Exempted</span>` : 
+                                 (paid >= groupTarget ? `<span class="text-green-600 font-black tracking-tighter">● Paid Full</span>` : `<span class="text-rose-600 font-black italic">₱${bal.toLocaleString()} Bal</span>`);
+
+                tbody.innerHTML += `
+                    <tr class="${isRec ? 'receiver-row' : 'cursor-pointer hover:bg-slate-50'}" ${!isRec && contributions.length > 0 ? `onclick="window.reissueReceipt('Contribution', '${m.name.replace(/'/g, "\\'")}', '${filter}', ${paid}, '${contributions[0].id}', 'Verified')"` : ''}>
+                        <td class="p-4 font-black text-slate-700">${m.name}</td>
+                        <td class="p-4 font-black">₱${paid.toLocaleString()}</td>
+                        <td class="p-4 text-right">${statusHtml}</td>
+                    </tr>`;
             });
 
-            const pList = document.getElementById('audit-payout-list');
-            pList.innerHTML = '';
-            myPayouts.forEach(p => {
-                pList.innerHTML += `<div class="bg-slate-950 p-4 rounded-2xl border border-emerald-900/20 flex justify-between items-center mb-1"><div class="text-[10px] uppercase"><b class="text-slate-400">${p.month} Release</b><br><span class="opacity-30 text-[8px]">${p.timestamp ? p.timestamp.toDate().toLocaleDateString() : 'Now'}</span></div><span class="text-emerald-400 font-black font-mono-subtle">₱${p.amountGiven.toLocaleString()}</span></div>`;
+            // Render payouts (money received) for this month specifically
+            rawPayouts.filter(p => p.month === fM && p.year == fY).forEach(p => {
+                tbody.innerHTML += `
+                    <tr class="bg-slate-900 text-white cursor-pointer" onclick="window.reissueReceipt('Pot Release', '${p.receiverName.replace(/'/g, "\\'")}', '${filter}', ${p.amountGiven}, '${p.id}', 'Verified')">
+                        <td class="p-4 font-black italic text-[9px] tracking-widest text-slate-400">POT RELEASED TO RECEIVER</td>
+                        <td class="p-4 font-black text-rose-500">₱${p.amountGiven.toLocaleString()}</td>
+                        <td class="p-4 text-right text-slate-400 font-black italic text-[8px] tracking-widest">TAP FOR RECEIPT</td>
+                    </tr>`;
             });
         }
 
-        auditSelect.onchange = updateMemberAudit;
+        function renderOverallOverview() {
+            const totalIn = rawContr.reduce((s, c) => s + c.amount, 0);
+            const totalOut = rawPayouts.reduce((s, p) => s + p.amountGiven, 0);
+            const totalExpPayout = (rawMembers.length - 1) * groupTarget;
+            document.getElementById('stat-cash-on-hand').innerText = `₱${(totalIn - totalOut).toLocaleString()}`;
+            document.getElementById('stat-pot-debt').innerText = `₱${Math.max(0, totalExpPayout - totalOut).toLocaleString()}`;
+
+            const logBody = document.getElementById('overall-log-body');
+            logBody.innerHTML = '';
+            const allEvents = [...rawContr.map(c => ({ ...c, type: 'IN', label: `${c.memberName} Paid ${c.appliedMonth}`, name: c.memberName, cycle: `${c.appliedMonth} ${c.appliedYear}`, amt: c.amount })), ...rawPayouts.map(p => ({ ...p, type: 'OUT', label: `Pot Released to ${p.receiverName}`, name: p.receiverName, cycle: `${p.month} ${p.year}`, amt: p.amountGiven }))].sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+
+            allEvents.forEach(e => {
+                const date = e.timestamp ? e.timestamp.toDate().toLocaleString('en-PH', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '...';
+                logBody.innerHTML += `<tr onclick="window.reissueReceipt('${e.type === 'IN' ? 'Contribution' : 'Pot Release'}', '${e.name.replace(/'/g, "\\'")}', '${e.cycle}', ${e.amt}, '${e.id}', '${date}')" class="hover:bg-slate-50 cursor-pointer transition-all"><td class="p-4 text-slate-400 text-[8px] font-bold">${date}</td><td class="p-4 font-black italic text-slate-700">${e.label}</td><td class="p-4 text-right font-black ${e.type === 'IN' ? 'text-green-600' : 'text-rose-600'}">${e.type === 'IN' ? '+' : '-'}₱${e.amt.toLocaleString()}</td></tr>`;
+            });
+        }
+
+        window.reissueReceipt = (type, name, cycle, amt, ref, date) => {
+            document.getElementById('rcpt-type').innerText = type;
+            document.getElementById('rcpt-name').innerText = name;
+            document.getElementById('rcpt-cycle').innerText = cycle;
+            document.getElementById('rcpt-amt').innerText = `₱${amt.toLocaleString()}`;
+            document.getElementById('rcpt-ref').innerText = ref;
+            document.getElementById('rcpt-date').innerText = date;
+            document.getElementById('receipt-modal').classList.remove('hidden');
+        };
+
+        document.getElementById('btn-download-receipt').onclick = () => {
+            const btn = document.getElementById('btn-download-receipt');
+            btn.innerText = "Processing...";
+            html2canvas(document.querySelector("#receipt-capture"), { scale: 3, backgroundColor: "#ffffff" }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `SALIG_Receipt.png`; link.href = canvas.toDataURL("image/png"); link.click();
+                btn.innerText = "Save Image";
+            });
+        };
+
+        document.getElementById('monthly-cycle-filter').onchange = renderMonthlyTracker;
+        document.getElementById('search-member').oninput = renderMemberDirectory;
     </script>
-
-    <footer class="mt-20 mb-10 text-center space-y-2 border-t border-slate-900 pt-8">
-    <p class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600">
-        System Developed by <span class="text-rose-600 underline decoration-rose-900/50">Tito Amerigo V. Custodio, Jr., MIT</span>
-    </p>
-    <p class="text-[9px] text-slate-700 font-bold italic uppercase tracking-widest">
-        ROSCA Transparency Engine v1.0
-    </p>
-</footer>
 </body>
-
 </html>

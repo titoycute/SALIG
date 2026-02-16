@@ -3,112 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ROSCA | Super Admin</title>
+    <title>SALIG | Super Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .admin-danger { border-left: 4px solid #dc2626; }
         .tab-active { border-bottom: 3px solid #dc2626; color: #dc2626; font-weight: 800; }
         .hidden-tab { display: none; }
+        input[type="number"]::-webkit-inner-spin-button { display: none; }
+        .status-pill { padding: 2px 8px; border-radius: 9999px; font-size: 9px; font-weight: 900; text-transform: uppercase; }
+        .status-approved { background-color: #064e3b; color: #34d399; }
+        .status-pending { background-color: #78350f; color: #fbbf24; }
+        .status-deactivated { background-color: #7f1d1d; color: #f87171; }
     </style>
 </head>
-<body class="bg-slate-900 min-h-screen p-4 md:p-8 text-slate-100">
+<body class="bg-slate-950 min-h-screen p-4 md:p-8 text-slate-100 font-sans">
 
     <div class="max-w-7xl mx-auto space-y-6">
         <!-- ADMIN HEADER -->
-        <header class="flex flex-col md:flex-row justify-between items-center bg-slate-800 p-6 rounded-3xl border border-rose-500/30 gap-4 shadow-2xl">
+        <header class="flex flex-col md:flex-row justify-between items-center bg-slate-900 p-6 rounded-3xl border border-rose-500/20 gap-4 shadow-2xl">
             <div>
-                <h1 class="text-3xl font-black tracking-tighter text-white uppercase">Super Admin <span class="text-rose-500">God Mode</span></h1>
-                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Global Database Access • Full Edit/Delete Rights</p>
+                <h1 class="text-3xl font-black tracking-tighter text-white uppercase italic">Super Admin <span class="text-rose-500">God Mode</span></h1>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em]">SALIG Central Command • v1.1</p>
             </div>
             <div class="flex items-center gap-4">
-                <select id="global-group-selector" class="p-3 bg-slate-700 border-none rounded-xl font-bold text-white outline-none focus:ring-2 focus:ring-rose-500 w-64">
-                    <option value="">-- Select Group to Audit --</option>
+                <select id="global-group-selector" class="p-3 bg-slate-800 border border-slate-700 rounded-xl font-bold text-white outline-none focus:ring-2 focus:ring-rose-500 w-64">
+                    <option value="">-- Select Group --</option>
                 </select>
-                <button id="nav-logout" class="bg-rose-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-rose-700 transition">LOGOUT</button>
+                <button id="nav-logout" class="bg-rose-600 hover:bg-rose-700 px-6 py-2.5 rounded-xl text-xs font-black transition uppercase tracking-widest">Logout</button>
             </div>
         </header>
 
         <!-- ADMIN TAB NAVIGATION -->
-        <div class="flex space-x-8 border-b border-slate-700 mb-4 px-4 overflow-x-auto">
-            <button id="tab-groups" class="pb-3 text-xs font-bold tab-active uppercase tracking-widest whitespace-nowrap">Manage Groups</button>
-            <button id="tab-members" class="pb-3 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Edit Members</button>
-            <button id="tab-history" class="pb-3 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Audit Logs</button>
+        <div class="flex space-x-8 border-b border-slate-800 mb-4 px-4 overflow-x-auto">
+            <button id="tab-groups" class="pb-3 text-[10px] font-black tab-active uppercase tracking-widest whitespace-nowrap">Groups</button>
+            <button id="tab-members" class="pb-3 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Members</button>
+            <button id="tab-history" class="pb-3 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Audit Logs</button>
+            <button id="tab-requests" class="pb-3 text-[10px] font-black text-amber-500 uppercase tracking-widest whitespace-nowrap">Requests</button>
+            <button id="tab-users" class="pb-3 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">User Management</button>
         </div>
 
-        <!-- 1. MANAGE GROUPS TAB -->
+        <!-- 1. MANAGE GROUPS -->
         <div id="view-groups" class="space-y-6">
-            <div class="bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden shadow-xl">
-                <div class="p-6 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center">
-                    <h2 class="font-bold text-rose-500 uppercase text-sm tracking-widest">Global Group Directory</h2>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-900 text-slate-500 text-[10px] uppercase font-bold">
-                            <tr><th class="p-4">Group Name</th><th class="p-4">Target (₱)</th><th class="p-4">View Code</th><th class="p-4 text-center">Actions</th></tr>
-                        </thead>
-                        <tbody id="admin-group-list" class="divide-y divide-slate-700"></tbody>
-                    </table>
-                </div>
+            <div class="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-xl">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-950 text-slate-500 text-[10px] uppercase font-black">
+                        <tr><th class="p-4">Group Name</th><th class="p-4">Target (₱)</th><th class="p-4">View Code</th><th class="p-4 text-center">Actions</th></tr>
+                    </thead>
+                    <tbody id="admin-group-list" class="divide-y divide-slate-800"></tbody>
+                </table>
             </div>
         </div>
 
-        <!-- 2. EDIT MEMBERS TAB -->
+        <!-- 2. EDIT MEMBERS -->
         <div id="view-members" class="hidden-tab space-y-6">
-            <div class="bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden shadow-xl">
-                <div class="p-6 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center">
-                    <h2 class="font-bold text-emerald-500 uppercase text-sm tracking-widest">Edit Member Profiles</h2>
+            <div class="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-xl">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-950 text-slate-500 text-[10px] uppercase font-black">
+                        <tr><th class="p-4">Member Name</th><th class="p-4">Payout Month</th><th class="p-4 text-center">Actions</th></tr>
+                    </thead>
+                    <tbody id="admin-member-list" class="divide-y divide-slate-800"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3. AUDIT LOGS -->
+        <div id="view-history" class="hidden-tab grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-xl">
+                <div class="p-4 bg-slate-950 font-black text-[10px] uppercase text-emerald-500 tracking-widest border-b border-slate-800">Contribution Audit (Live Edit)</div>
+                <div class="max-h-[500px] overflow-y-auto">
+                    <table class="w-full text-[10px] uppercase font-bold">
+                        <tbody id="admin-contribution-logs" class="divide-y divide-slate-800"></tbody>
+                    </table>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-900 text-slate-500 text-[10px] uppercase font-bold">
-                            <tr><th class="p-4">Subjective Name</th><th class="p-4">Payout Month</th><th class="p-4 text-center">Actions</th></tr>
-                        </thead>
-                        <tbody id="admin-member-list" class="divide-y divide-slate-700"></tbody>
+            </div>
+            <div class="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-xl">
+                <div class="p-4 bg-slate-950 font-black text-[10px] uppercase text-rose-500 tracking-widest border-b border-slate-800">Payout Audit</div>
+                <div class="max-h-[500px] overflow-y-auto">
+                    <table class="w-full text-[10px] uppercase font-bold">
+                        <tbody id="admin-payout-logs" class="divide-y divide-slate-800"></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- 3. AUDIT LOGS TAB -->
-        <div id="view-history" class="hidden-tab grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Contributions -->
-            <div class="bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden shadow-xl">
-                <div class="p-4 bg-slate-900/50 border-b border-slate-700 font-bold text-xs uppercase text-slate-400 italic">Contribution Audit</div>
-                <div class="max-h-[500px] overflow-y-auto">
-                    <table class="w-full text-[10px] uppercase">
-                        <tbody id="admin-contribution-logs" class="divide-y divide-slate-700"></tbody>
-                    </table>
-                </div>
-            </div>
-            <!-- Payouts -->
-            <div class="bg-slate-800 rounded-3xl border border-slate-700 overflow-hidden shadow-xl">
-                <div class="p-4 bg-slate-900/50 border-b border-slate-700 font-bold text-xs uppercase text-slate-400 italic">Payout Audit</div>
-                <div class="max-h-[500px] overflow-y-auto">
-                    <table class="w-full text-[10px] uppercase">
-                        <tbody id="admin-payout-logs" class="divide-y divide-slate-700"></tbody>
-                    </table>
-                </div>
+        <!-- 4. PENDING REQUESTS -->
+        <div id="view-requests" class="hidden-tab space-y-6">
+            <div class="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-xl">
+                <div class="p-6 border-b border-slate-800 font-black text-amber-500 uppercase text-xs tracking-widest">Awaiting Approval</div>
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-950 text-slate-500 text-[10px] uppercase font-black">
+                        <tr><th class="p-4">Name</th><th class="p-4">Email</th><th class="p-4 text-center">Action</th></tr>
+                    </thead>
+                    <tbody id="admin-pending-list" class="divide-y divide-slate-800"></tbody>
+                </table>
             </div>
         </div>
+
+        <!-- 5. USER MANAGEMENT (ACTIVATE/DEACTIVATE) -->
+        <div id="view-users" class="hidden-tab space-y-6">
+            <div class="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-xl">
+                <div class="p-6 border-b border-slate-800 font-black text-emerald-500 uppercase text-xs tracking-widest">Registered Managers & Admins</div>
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-950 text-slate-500 text-[10px] uppercase font-black">
+                        <tr><th class="p-4">User Details</th><th class="p-4">Role</th><th class="p-4 text-center">Status</th><th class="p-4 text-center">Management</th></tr>
+                    </thead>
+                    <tbody id="admin-users-list" class="divide-y divide-slate-800"></tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 
     <script type="module">
         import { db, auth } from './config.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         let selectedGroupId = "";
 
-        // AUTH CHECK
-        onAuthStateChanged(auth, async (u) => {
-            if(!u) window.location.href="login.html";
-            loadAllGroups();
+        // AUTH & BOOTSTRAP
+        onAuthStateChanged(auth, u => { 
+            if(!u) window.location.href="login.html"; 
+            loadAllGroups(); 
+            loadRequests(); 
+            loadUsers();
         });
-
         document.getElementById('nav-logout').onclick = () => signOut(auth);
 
-        // TAB SWITCHING
-        const tabs = ['groups', 'members', 'history'];
+        // TAB SWITCHER
+        const tabs = ['groups', 'members', 'history', 'requests', 'users'];
         tabs.forEach(t => {
             document.getElementById(`tab-${t}`).onclick = () => {
                 tabs.forEach(x => {
@@ -121,124 +143,166 @@
             };
         });
 
-        // 1. GLOBAL GROUP LOGIC
-        function loadAllGroups() {
-            onSnapshot(collection(db, "groups"), (snap) => {
-                const tbody = document.getElementById('admin-group-list');
-                const selector = document.getElementById('global-group-selector');
-                tbody.innerHTML = '';
-                selector.innerHTML = '<option value="">-- Select Group to Audit --</option>';
+        // 1. GROUPS LOGIC
+       // 1. GLOBAL GROUP LOGIC (Now with View Codes)
+function loadAllGroups() {
+    onSnapshot(collection(db, "groups"), snap => {
+        const tbody = document.getElementById('admin-group-list');
+        const sel = document.getElementById('global-group-selector');
+        tbody.innerHTML = ''; 
+        sel.innerHTML = '<option value="">-- Select Group to Audit --</option>';
 
-                snap.forEach(d => {
-                    const g = d.data();
-                    const id = d.id;
-                    selector.innerHTML += `<option value="${id}">${g.name}</option>`;
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-slate-700/30 transition">
-                            <td class="p-4 font-bold"><input id="gn-${id}" value="${g.name}" class="bg-transparent border-b border-slate-600 outline-none focus:border-rose-500 w-full"></td>
-                            <td class="p-4"><input type="number" id="ga-${id}" value="${g.amount}" class="bg-transparent border-b border-slate-600 outline-none focus:border-rose-500 w-24"></td>
-                            <td class="p-4 font-mono text-rose-400">${g.viewCode || 'NO CODE'}</td>
-                            <td class="p-4 flex gap-2 justify-center">
-                                <button onclick="updateGroup('${id}')" class="bg-emerald-600 p-2 rounded text-[10px] font-bold">SAVE</button>
-                                <button onclick="deleteGroup('${id}')" class="bg-rose-600 p-2 rounded text-[10px] font-bold">DELETE</button>
-                            </td>
-                        </tr>`;
-                });
-            });
-        }
+        snap.forEach(d => {
+            const g = d.data();
+            const id = d.id;
+            
+            // Add to the top dropdown
+            sel.innerHTML += `<option value="${id}">${g.name}</option>`;
 
-        window.updateGroup = async (id) => {
-            const name = document.getElementById(`gn-${id}`).value;
-            const amount = document.getElementById(`ga-${id}`).value;
-            await updateDoc(doc(db, "groups", id), { name, amount: parseFloat(amount) });
-            alert("Group Updated");
-        };
+            // Check if code exists, if not show warning
+            const displayCode = g.viewCode ? g.viewCode : '<span class="text-rose-500 font-black animate-pulse">MISSING</span>';
 
-        window.deleteGroup = async (id) => {
-            if(!confirm("DANGER: This will delete the group. Members and contributions will remain in DB but be disconnected. Proceed?")) return;
-            await deleteDoc(doc(db, "groups", id));
-        };
+            tbody.innerHTML += `
+                <tr class="hover:bg-slate-900 transition border-b border-slate-800">
+                    <td class="p-4">
+                        <input id="gn-${id}" value="${g.name}" 
+                            class="bg-transparent border-b border-slate-700 w-full outline-none font-bold text-white focus:border-emerald-500 transition">
+                    </td>
+                    <td class="p-4">
+                        <input id="ga-${id}" type="number" value="${g.amount}" 
+                            class="bg-transparent border-b border-slate-700 w-24 outline-none font-mono text-emerald-400 focus:border-emerald-500 transition">
+                    </td>
+                    <td class="p-4 font-mono text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="text-rose-500 font-black tracking-widest">${displayCode}</span>
+                            <button onclick="regenGCode('${id}')" title="Generate New Code" 
+                                class="bg-slate-800 hover:bg-slate-700 p-1.5 rounded-lg transition text-[9px] text-slate-400 uppercase font-black">
+                                🔄 Regen
+                            </button>
+                        </div>
+                    </td>
+                    <td class="p-4 text-center space-x-2">
+                        <button onclick="saveG('${id}')" class="bg-emerald-600/20 text-emerald-500 hover:bg-emerald-600 hover:text-white px-3 py-1 rounded font-black text-[10px] transition">SAVE</button>
+                        <button onclick="delG('${id}')" class="bg-rose-600/20 text-rose-500 hover:bg-rose-600 hover:text-white px-3 py-1 rounded font-black text-[10px] transition">DELETE</button>
+                    </td>
+                </tr>`;
+        });
+    });
+}
 
-        // 2. AUDIT LOGIC (WHEN GROUP SELECTED)
-        document.getElementById('global-group-selector').onchange = (e) => {
+// Global function to regenerate code as Admin
+window.regenGCode = async (id) => {
+    const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    try {
+        await updateDoc(doc(db, "groups", id), { viewCode: newCode });
+        alert("Success! Group Code updated to: " + newCode);
+    } catch (e) {
+        alert("Error updating code: " + e.message);
+    }
+};
+        window.saveG = async id => { await updateDoc(doc(db, "groups", id), { name: document.getElementById(`gn-${id}`).value, amount: parseFloat(document.getElementById(`ga-${id}`).value) }); alert("Group Updated"); };
+        window.delG = async id => { if(confirm("Delete Group?")) await deleteDoc(doc(db, "groups", id)); };
+
+        // 2. AUDIT DATA SELECTOR
+        document.getElementById('global-group-selector').onchange = e => {
             selectedGroupId = e.target.value;
-            if(selectedGroupId) {
-                loadMembers(selectedGroupId);
-                loadAuditLogs(selectedGroupId);
-            }
+            if(selectedGroupId) { loadMembers(selectedGroupId); loadAudit(selectedGroupId); }
         };
 
         function loadMembers(gid) {
-            onSnapshot(query(collection(db, "members"), where("groupId", "==", gid)), (snap) => {
-                const tbody = document.getElementById('admin-member-list');
-                tbody.innerHTML = '';
+            onSnapshot(query(collection(db, "members"), where("groupId", "==", gid)), snap => {
+                const tbody = document.getElementById('admin-member-list'); tbody.innerHTML = '';
                 snap.forEach(d => {
                     const m = d.data();
+                    tbody.innerHTML += `<tr><td class="p-4"><input id="mn-${d.id}" value="${m.name}" class="bg-transparent border-b border-slate-800 w-full outline-none focus:border-rose-500"></td><td class="p-4"><input id="mp-${d.id}" value="${m.payoutMonth}" class="bg-transparent border-b border-slate-800 w-full outline-none focus:border-rose-500"></td><td class="p-4 text-center space-x-4"><button onclick="saveM('${d.id}')" class="text-emerald-500 font-black text-xs">SAVE</button><button onclick="delM('${d.id}')" class="text-rose-500 font-black text-xs">DEL</button></td></tr>`;
+                });
+            });
+        }
+        window.saveM = async id => { await updateDoc(doc(db, "members", id), { name: document.getElementById(`mn-${id}`).value, payoutMonth: document.getElementById(`mp-${id}`).value }); alert("Member Saved"); };
+        window.delM = async id => { if(confirm("Delete Member?")) await deleteDoc(doc(db, "members", id)); };
+
+        // 3. EDITABLE TRANSACTION LOGS
+        function loadAudit(gid) {
+            onSnapshot(query(collection(db, "contributions"), where("groupId", "==", gid)), snap => {
+                const tbody = document.getElementById('admin-contribution-logs'); tbody.innerHTML = '';
+                snap.forEach(d => {
+                    const c = d.data();
+                    tbody.innerHTML += `<tr><td class="p-3 text-slate-500">${c.memberName}</td><td class="p-3"><input id="ca-${d.id}" type="number" value="${c.amount}" class="bg-slate-800 rounded p-1 w-16"></td><td class="p-3"><input id="cm-${d.id}" value="${c.appliedMonth}" class="bg-slate-800 rounded p-1 w-16"></td><td class="p-3 text-center"><button onclick="saveC('${d.id}')" class="text-emerald-500 mr-2">💾</button><button onclick="delLog('contributions','${d.id}')" class="text-rose-500">🗑️</button></td></tr>`;
+                });
+            });
+            onSnapshot(query(collection(db, "payouts"), where("groupId", "==", gid)), snap => {
+                const tbody = document.getElementById('admin-payout-logs'); tbody.innerHTML = '';
+                snap.forEach(d => {
+                    const p = d.data();
+                    tbody.innerHTML += `<tr><td class="p-3">${p.receiverName}</td><td class="p-3 text-rose-500">₱${p.amountGiven}</td><td class="p-3 opacity-50">${p.month}</td><td class="p-3 text-center"><button onclick="delLog('payouts','${d.id}')" class="text-rose-500 font-black">DEL</button></td></tr>`;
+                });
+            });
+        }
+        window.saveC = async id => { await updateDoc(doc(db, "contributions", id), { amount: parseFloat(document.getElementById(`ca-${id}`).value), appliedMonth: document.getElementById(`cm-${id}`).value }); alert("Log Saved"); };
+        window.delLog = async (col, id) => { if(confirm("Delete permanent log?")) await deleteDoc(doc(db, col, id)); };
+
+        // 4. USER ACCESS LOGIC (APPROVALS & DEACTIVATION)
+        function loadRequests() {
+            onSnapshot(query(collection(db, "users"), where("status", "==", "pending")), snap => {
+                const tbody = document.getElementById('admin-pending-list'); tbody.innerHTML = '';
+                if(snap.empty) tbody.innerHTML = '<tr><td colspan="3" class="p-10 text-center text-slate-700 italic">No pending manager requests</td></tr>';
+                snap.forEach(d => {
+                    const u = d.data();
+                    tbody.innerHTML += `<tr><td class="p-4 font-bold text-white">${u.name}</td><td class="p-4 text-slate-500 font-mono text-xs">${u.email}</td><td class="p-4 text-center"><button onclick="updateUserStatus('${d.id}', 'approved')" class="bg-emerald-600 px-4 py-1 rounded-lg font-black text-[10px]">APPROVE</button></td></tr>`;
+                });
+            });
+        }
+
+        function loadUsers() {
+             console.log("Attempting to load users list...");
+    onSnapshot(collection(db, "users"), (snap) => {
+        const tbody = document.getElementById('admin-users-list');
+        tbody.innerHTML = '';
+        console.log("Users found:", snap.size);
+        
+        snap.forEach(d => {
+            
+                    const u = d.data();
+                    const statusClass = `status-${u.status || 'pending'}`;
+                    const btnColor = u.status === 'approved' ? 'bg-rose-900 text-rose-200' : 'bg-emerald-900 text-emerald-200';
+                    const btnLabel = u.status === 'approved' ? 'DEACTIVATE' : 'ACTIVATE';
+                    const nextStatus = u.status === 'approved' ? 'deactivated' : 'approved';
+
                     tbody.innerHTML += `
-                        <tr class="hover:bg-slate-700/30 transition">
-                            <td class="p-4 font-bold"><input id="mn-${d.id}" value="${m.name}" class="bg-transparent border-b border-slate-600 outline-none w-full"></td>
-                            <td class="p-4"><input id="mp-${d.id}" value="${m.payoutMonth}" class="bg-transparent border-b border-slate-600 outline-none w-full"></td>
-                            <td class="p-4 flex gap-2 justify-center">
-                                <button onclick="updateMember('${d.id}')" class="bg-emerald-600 p-2 rounded text-[10px] font-bold">SAVE</button>
-                                <button onclick="deleteMember('${d.id}')" class="bg-rose-600 p-2 rounded text-[10px] font-bold">DELETE</button>
+                        <tr class="hover:bg-slate-900 transition">
+                            <td class="p-4">
+                                <p class="font-bold text-white">${u.name}</p>
+                                <p class="text-[10px] text-slate-500 font-mono">${u.email}</p>
+                            </td>
+                            <td class="p-4 font-black text-[10px] uppercase text-rose-500 tracking-widest">${u.role}</td>
+                            <td class="p-4 text-center">
+                                <span class="status-pill ${statusClass}">${u.status || 'pending'}</span>
+                            </td>
+                            <td class="p-4 text-center">
+                                <button onclick="updateUserStatus('${d.id}', '${nextStatus}')" 
+                                    class="${btnColor} px-3 py-1 rounded text-[9px] font-black uppercase tracking-tighter transition">
+                                    ${btnLabel}
+                                </button>
                             </td>
                         </tr>`;
                 });
+                 }, (error) => {
+        // THIS WILL TELL YOU EXACTLY WHAT IS WRONG
+        console.error("User List Error:", error.code, error.message);
+        if (error.code === 'permission-denied') {
+            alert("Permission Denied: Your account role in Firestore might not be set to 'admin' (all lowercase).");
+        }
+    
             });
         }
 
-        window.updateMember = async (id) => {
-            const name = document.getElementById(`mn-${id}`).value;
-            const payoutMonth = document.getElementById(`mp-${id}`).value;
-            await updateDoc(doc(db, "members", id), { name, payoutMonth });
-            alert("Member Updated");
+        window.updateUserStatus = async (uid, newStatus) => {
+            try {
+                await updateDoc(doc(db, "users", uid), { status: newStatus });
+                alert(`User is now ${newStatus.toUpperCase()}`);
+            } catch (e) { alert(e.message); }
         };
 
-        window.deleteMember = async (id) => {
-            if(!confirm("Delete this member?")) return;
-            await deleteDoc(doc(db, "members", id));
-        };
-
-        // 3. TRANSACTION AUDIT
-        function loadAuditLogs(gid) {
-            // Contributions
-            onSnapshot(query(collection(db, "contributions"), where("groupId", "==", gid)), (snap) => {
-                const tbody = document.getElementById('admin-contribution-logs');
-                tbody.innerHTML = '';
-                snap.forEach(d => {
-                    const c = d.data();
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-slate-700/30">
-                            <td class="p-3 text-slate-500">${c.timestamp?.toDate().toLocaleDateString() || '...'}</td>
-                            <td class="p-3 font-bold">${c.memberName}</td>
-                            <td class="p-3 text-emerald-400">₱${c.amount}</td>
-                            <td class="p-3"><button onclick="deleteEntry('contributions', '${d.id}')" class="text-rose-500 font-bold underline">DEL</button></td>
-                        </tr>`;
-                });
-            });
-
-            // Payouts
-            onSnapshot(query(collection(db, "payouts"), where("groupId", "==", gid)), (snap) => {
-                const tbody = document.getElementById('admin-payout-logs');
-                tbody.innerHTML = '';
-                snap.forEach(d => {
-                    const p = d.data();
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-slate-700/30">
-                            <td class="p-3 text-slate-500">${p.month}</td>
-                            <td class="p-3 font-bold">${p.receiverName}</td>
-                            <td class="p-3 text-rose-500 font-black">₱${p.amountGiven}</td>
-                            <td class="p-3"><button onclick="deleteEntry('payouts', '${d.id}')" class="text-rose-500 font-bold underline">DEL</button></td>
-                        </tr>`;
-                });
-            });
-        }
-
-        window.deleteEntry = async (col, id) => {
-            if(!confirm("Delete this transaction record permanently?")) return;
-            await deleteDoc(doc(db, col, id));
-            alert("Record Deleted");
-        };
     </script>
 </body>
 </html>

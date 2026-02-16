@@ -3,67 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ROSCA | Login</title>
+    <title>SALIG | Portal</title>
+    <link rel="icon" type="image/png" href="logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href="manifest.json">
+    <script> if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js'); 
+    } 
+    </script>
+    <style>
+        .hidden-auth { display: none; }
+        /* Secret mobile button - nearly invisible */
+        #secret-trigger { 
+            position: fixed; top: 0; right: 0; 
+            width: 60px; height: 60px; 
+            background: transparent; z-index: 100;
+        }
+        /* Custom Pale Yellow Background */
+        .bg-pale-yellow { background-color: #FFFDF0; }
+        .bg-warm-yellow { background-color: #FEF9E7; }
+    </style>
 </head>
-<body class="bg-slate-50 flex items-center justify-center min-h-screen p-4">
+<!-- UPDATED BODY BG TO PALE YELLOW -->
+<body class="bg-pale-yellow flex items-center justify-center min-h-screen p-4 transition-all duration-700" id="page-body">
 
-    <div class="max-w-md w-full bg-white rounded-3xl p-8 shadow-xl border border-slate-100">
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-black text-slate-800 tracking-tighter">ROSCA <span class="text-rose-600">HUB</span></h1>
-            <p class="text-slate-400 text-sm">Sign in to manage your groups</p>
+    <!-- SECRET MOBILE TRIGGER (Upper Right) -->
+    <div id="secret-trigger"></div>
+
+    <div class="max-w-md w-full bg-white rounded-[2.5rem] p-10 shadow-2xl border border-yellow-100/50 text-center">
+        <!-- BRANDING -->
+        <div class="mb-10">
+            <!-- Ensure logo.png is in your folder -->
+            <img src="logo.png" alt="Logo" class="h-24 w-auto mx-auto mb-4 drop-shadow-md">
+            <h1 class="text-5xl font-black text-slate-800 tracking-tighter italic">SALIG</h1>
+            <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] leading-tight mt-2 px-4">
+                Savings Alliance for Liquidity, Investment, and Growth
+            </p>
         </div>
 
-        <div class="space-y-4">
-            <input type="email" id="login-email" placeholder="Email Address" class="w-full p-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-rose-500 transition">
-            <input type="password" id="login-pass" placeholder="Password" class="w-full p-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-rose-500 transition">
+        <!-- INSTALL APP BUTTON (Hidden by default) -->
+        <div id="install-container" class="hidden mb-6 animate-bounce">
+        <button id="btn-install" class="w-full bg-slate-800 text-white py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg">
+        <span>📲 Install SALIG App</span>
+        </button>
+        </div>
+
+        <!-- MAIN PUBLIC BUTTON (Always Visible) -->
+        <div class="space-y-6">
+            <a href="public_view.html" class="group relative block w-full py-6 bg-rose-600 rounded-3xl overflow-hidden transition-all hover:bg-rose-700 shadow-xl shadow-rose-200">
+                <span class="relative z-10 text-white font-black uppercase tracking-[0.2em] text-lg">View Group Status</span>
+                <div class="absolute inset-0 bg-white/10 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500"></div>
+            </a>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">Member Transparency Portal</p>
+        </div>
+
+        <!-- HIDDEN MANAGER SECTION -->
+        <div id="manager-auth-section" class="hidden-auth mt-12 pt-8 border-t border-yellow-50 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div class="text-left mb-4">
+                <h3 class="text-xs font-black uppercase tracking-widest text-rose-600">Management Access</h3>
+            </div>
+            <div id="login-error-box" class="hidden mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-[11px] text-rose-600 font-bold uppercase tracking-tight text-center animate-pulse">
+             <span id="error-message"></span>
+            </div>
+            <input type="email" id="login-email" placeholder="Email Address" class="w-full p-4 bg-yellow-50/30 border border-yellow-100 rounded-2xl outline-none focus:ring-2 focus:ring-slate-800 transition">
+            <input type="password" id="login-pass" placeholder="Password" class="w-full p-4 bg-yellow-50/30 border border-yellow-100 rounded-2xl outline-none focus:ring-2 focus:ring-slate-800 transition">
             
-            <button id="btn-login" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold hover:bg-black transition shadow-lg">Login</button>
+            <button id="btn-login" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-black transition shadow-lg active:scale-95">
+                Login
+            </button>
             
-            <div class="flex justify-between items-center px-1">
-                <p class="text-xs text-slate-400">Need an account?</p>
-                <a href="register.html" class="text-xs text-slate-800 font-black underline uppercase tracking-widest">Manager Signup</a>
+            <div class="flex justify-between items-center px-1 pt-2">
+                <p class="text-[10px] text-slate-400 font-bold uppercase">System Access Required</p>
+                <a href="register.html" class="text-[10px] text-slate-800 font-black underline uppercase tracking-widest">Manager Signup</a>
             </div>
         </div>
     </div>
 
     <script type="module">
         import { auth, db } from './config.js';
-        import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        document.getElementById('btn-login').onclick = async () => {
-            const email = document.getElementById('login-email').value;
-            const pass = document.getElementById('login-pass').value;
+        const authSection = document.getElementById('manager-auth-section');
+        const body = document.getElementById('page-body');
 
-            try {
-                const userCred = await signInWithEmailAndPassword(auth, email, pass);
-                const uid = userCred.user.uid;
-
-                // Check Firestore for user role
-                const userDoc = await getDoc(doc(db, "users", uid));
-
-                if (userDoc.exists()) {
-                    const role = userDoc.data().role;
-                    if (role === 'admin') {
-                        window.location.href = "admin.html";
-                    } else {
-                        window.location.href = "manager.html";
-                    }
-                } else {
-                    alert("User profile not found. Please register again.");
-                }
-
-            } catch (error) {
-                alert("Login Failed: " + error.message);
+        // --- SECRET UNLOCK LOGIC ---
+        
+        // 1. Desktop Shortcut: Shift + Z
+        document.addEventListener('keydown', (e) => {
+            if (e.shiftKey && (e.key === 'Z' || e.key === 'z')) {
+                revealManagerSection();
             }
-        };
-    </script>
+        });
 
-    <div class="fixed bottom-6 w-full text-center">
-    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-50">
-        Product of Tito Amerigo V. Custodio, Jr., MIT
-    </p>
-</div>
+        // 2. Mobile Floating Trigger
+        document.getElementById('secret-trigger').onclick = () => {
+            revealManagerSection();
+        };
+
+        function revealManagerSection() {
+            authSection.classList.remove('hidden-auth');
+            // Shift background from Pale to Warm Yellow when unlocked
+            body.classList.replace('bg-pale-yellow', 'bg-warm-yellow');
+        }
+
+        // --- LOGIN LOGIC ---
+       document.getElementById('btn-login').onclick = async () => {
+    const email = document.getElementById('login-email').value;
+    const pass = document.getElementById('login-pass').value;
+    const errorBox = document.getElementById('login-error-box');
+    const errorMsg = document.getElementById('error-message');
+
+    // Reset error box
+    errorBox.classList.add('hidden');
+
+    if(!email || !pass) {
+        showError("Please enter both email and password.");
+        return;
+    }
+
+    try {
+        const userCred = await signInWithEmailAndPassword(auth, email, pass);
+        const userDoc = await getDoc(doc(db, "users", userCred.user.uid));
+
+        if (userDoc.exists()) {
+            const data = userDoc.data();
+
+            // 1. Admin Logic
+            if (data.role === 'admin') {
+                window.location.href = "admin.html";
+                return;
+            }
+
+            // 2. Manager Logic with Status Check
+            if (data.role === 'manager') {
+                if (data.status === 'approved') {
+                    window.location.href = "manager.html";
+                } else if (data.status === 'deactivated') {
+                    showError("Your account has been deactivated. Please contact support.");
+                    await signOut(auth);
+                } else {
+                    showError("Access Denied: Your account is still awaiting Admin approval.");
+                    await signOut(auth);
+                }
+            }
+        } else {
+            showError("User profile not found in our records.");
+        }
+    } catch (error) {
+        console.error("Auth System Error:", error.code); // Log for you, but hide from user
+        
+        // CUSTOM USER-FRIENDLY MESSAGES
+        let userMessage = "Unable to sign in. Please try again later.";
+
+        switch (error.code) {
+            case 'auth/invalid-credential':
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+                userMessage = "Invalid email or password. Please try again.";
+                break;
+            case 'auth/too-many-requests':
+                userMessage = "Too many failed attempts. Access temporarily locked for security.";
+                break;
+            case 'auth/user-disabled':
+                userMessage = "This account has been disabled by the administrator.";
+                break;
+            case 'auth/network-request-failed':
+                userMessage = "Network error. Please check your internet connection.";
+                break;
+        }
+        showError(userMessage);
+    }
+
+    // Helper function to display the error nicely
+    function showError(text) {
+        errorMsg.innerText = text;
+        errorBox.classList.remove('hidden');
+    }
+};
+
+let deferredPrompt;
+const installContainer = document.getElementById('install-container');
+const installBtn = document.getElementById('btn-install');
+
+// Listen for the browser's "can install" event
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent Chrome 67 and earlier from automatically showing the prompt
+    e.preventDefault();
+    // Stash the event so it can be triggered later.
+    deferredPrompt = e;
+    // Show the install button
+    installContainer.classList.remove('hidden');
+});
+
+installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    // Show the install prompt
+    deferredPrompt.prompt();
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to install: ${outcome}`);
+    // We've used the prompt, and can't use it again, hide the button
+    deferredPrompt = null;
+    installContainer.classList.add('hidden');
+});
+
+// Hide button if already installed
+window.addEventListener('appinstalled', () => {
+    installContainer.classList.add('hidden');
+    console.log('SALIG App was installed.');
+}); 
+    </script>
 </body>
 </html>

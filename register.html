@@ -3,26 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ROSCA | Register</title>
+    <title>SALIG | Register</title>
+    <link rel="icon" type="image/png" href="logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .bg-pale-yellow { background-color: #FFFDF0; }
+        .bg-warm-yellow { background-color: #FEF9E7; }
+    </style>
 </head>
-<body class="bg-slate-900 flex items-center justify-center min-h-screen p-4">
+<body class="bg-pale-yellow flex items-center justify-center min-h-screen p-4 transition-all duration-700" id="page-body">
 
-    <div class="max-w-md w-full bg-white rounded-3xl p-8 shadow-2xl">
+    <div class="max-w-md w-full bg-white rounded-[2.5rem] p-10 shadow-2xl border border-yellow-100/50 text-center">
         <div class="text-center mb-8">
-            <h1 id="reg-title" class="text-3xl font-black text-slate-800 tracking-tight">Manager Account</h1>
-            <p id="reg-subtitle" class="text-slate-500 text-sm">Create your ROSCA management portal</p>
+            <img src="logo.png" alt="Logo" class="h-16 w-auto mx-auto mb-4">
+            <h1 id="reg-title" class="text-3xl font-black text-slate-800 tracking-tight uppercase">Manager Account</h1>
+            <p id="reg-subtitle" class="text-slate-400 text-[10px] font-bold uppercase tracking-widest leading-tight mt-2 px-4">
+                Create your SALIG management portal access.
+            </p>
         </div>
 
         <div class="space-y-4">
-            <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-4 bg-slate-100 border-none rounded-2xl outline-none focus:ring-2 focus:ring-slate-800 transition">
-            <input type="email" id="reg-email" placeholder="Email Address" class="w-full p-4 bg-slate-100 border-none rounded-2xl outline-none focus:ring-2 focus:ring-slate-800 transition">
-            <input type="password" id="reg-pass" placeholder="Password" class="w-full p-4 bg-slate-100 border-none rounded-2xl outline-none focus:ring-2 focus:ring-slate-800 transition">
+            <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-4 bg-warm-yellow/30 border border-yellow-100 rounded-2xl outline-none focus:ring-2 focus:ring-slate-800 transition">
+            <input type="email" id="reg-email" placeholder="Email Address" class="w-full p-4 bg-warm-yellow/30 border border-yellow-100 rounded-2xl outline-none focus:ring-2 focus:ring-slate-800 transition">
+            <input type="password" id="reg-pass" placeholder="Password" class="w-full p-4 bg-warm-yellow/30 border border-yellow-100 rounded-2xl outline-none focus:ring-2 focus:ring-slate-800 transition">
             
-            <button id="btn-register" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold hover:bg-black transition">Create Account</button>
+            <button id="btn-register" class="w-full bg-rose-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-rose-700 transition shadow-lg active:scale-95">
+                Register
+            </button>
             
-            <p class="text-center text-sm text-slate-400">
-                Already have an account? <a href="login.html" class="text-slate-800 font-bold underline">Login</a>
+            <p class="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                Already have an account? <a href="login.html" class="text-slate-800 underline">Login</a>
             </p>
         </div>
     </div>
@@ -41,15 +51,12 @@
             if (pressedKeys['Shift'] && pressedKeys['A'] && pressedKeys['S']) {
                 currentRole = "admin";
                 document.getElementById('reg-title').innerText = "Admin Account";
-                document.getElementById('reg-title').classList.replace('text-slate-800', 'text-rose-600');
+                document.getElementById('reg-title').classList.add('text-rose-600');
                 document.getElementById('reg-subtitle').innerText = "UNLOCKED: System Administrator Mode";
-                console.log("Admin registration mode activated.");
+                document.getElementById('page-body').classList.replace('bg-pale-yellow', 'bg-slate-200');
             }
         });
-
-        document.addEventListener('keyup', (e) => {
-            delete pressedKeys[e.key];
-        });
+        document.addEventListener('keyup', (e) => { delete pressedKeys[e.key]; });
 
         // --- REGISTRATION LOGIC ---
         document.getElementById('btn-register').onclick = async () => {
@@ -63,27 +70,23 @@
                 const userCred = await createUserWithEmailAndPassword(auth, email, pass);
                 const uid = userCred.user.uid;
 
-                // Save user profile with role to Firestore
+                // Admins are auto-approved, Managers are pending
+                const status = (currentRole === "admin") ? "approved" : "pending";
+
                 await setDoc(doc(db, "users", uid), {
-                    uid: uid,
-                    name: name,
-                    email: email,
-                    role: currentRole, // Either manager or admin
-                    createdAt: new Date()
+                    uid, name, email, role: currentRole, status, createdAt: new Date()
                 });
 
-                alert(`${currentRole.toUpperCase()} account created successfully!`);
+                alert(currentRole === "admin" ? "Admin Created!" : "Registration sent! Waiting for Admin approval.");
                 window.location.href = "login.html";
 
-            } catch (error) {
-                alert(error.message);
-            }
+            } catch (error) { alert(error.message); }
         };
     </script>
     <div class="fixed bottom-6 w-full text-center">
-    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-50">
-        Product of Tito Amerigo V. Custodio, Jr., MIT
-    </p>
-</div>
+        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-50">
+            Product of Tito Amerigo V. Custodio, Jr., MIT
+        </p>
+    </div>
 </body>
 </html>

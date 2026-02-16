@@ -1,0 +1,21 @@
+{
+  "name": "SALIG Hub",
+  "short_name": "SALIG",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#FFFDF0",
+  "theme_color": "#e11d48",
+  "description": "Savings Alliance for Liquidity, Investment, and Growth",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -48,51 +48,6 @@
         </div>
     </div>
 
-    <!-- GROUP SHARE/INVITATION MODAL -->
-    <div id="share-modal" class="fixed inset-0 z-[70] hidden modal-bg flex items-center justify-center p-4">
-        <div class="max-w-sm w-full space-y-4">
-            <!-- The Card to Capture -->
-            <div id="share-card-capture" class="bg-white rounded-[2.5rem] p-10 shadow-2xl border border-slate-200 relative overflow-hidden text-center">
-                <div class="absolute -left-10 -top-10 w-40 h-40 bg-rose-50 rounded-full opacity-50"></div>
-                <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-green-50 rounded-full opacity-50"></div>
-                
-                <img src="logo.png" alt="SALIG" class="h-16 mx-auto mb-4 relative z-10">
-                <h2 class="text-2xl font-black italic uppercase tracking-tighter text-slate-800">Join our <span class="text-rose-600">Hub</span></h2>
-                <p id="share-group-name" class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">---</p>
-
-                <div class="bg-slate-50 rounded-3xl p-6 mb-6 border border-slate-100">
-                    <p class="text-[8px] font-black text-slate-400 uppercase mb-2">Contribution Amount</p>
-                    <p id="share-group-amount" class="text-3xl font-black text-slate-900 mb-1">₱0.00</p>
-                    <p class="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Per Turn Cycle</p>
-                </div>
-
-                <div class="space-y-4 mb-8">
-                    <div>
-                        <p class="text-[8px] font-black text-slate-400 uppercase mb-2 italic">Access Code</p>
-                        <p id="share-group-code" class="text-4xl font-black text-rose-600 tracking-[0.2em] border-2 border-dashed border-rose-200 py-3 rounded-2xl bg-rose-50/50">------</p>
-                    </div>
-                    
-                    <div class="text-left">
-                        <p class="text-[8px] font-black text-slate-400 uppercase mb-2 border-b pb-1">Joined Members</p>
-                        <div id="share-member-list" class="text-[9px] font-bold text-slate-700 grid grid-cols-2 gap-x-4 gap-y-1 uppercase italic">
-                            <!-- Members injected here -->
-                        </div>
-                    </div>
-                </div>
-
-                <div class="pt-6 border-t border-slate-100">
-                    <p class="text-[7px] font-black text-slate-400 uppercase mb-2">View Group Progress at:</p>
-                    <p class="text-[9px] font-black text-slate-900 bg-yellow-100 py-2 rounded-xl border border-yellow-200">www.salig.page.gd</p>
-                </div>
-            </div>
-
-            <div class="flex gap-2">
-                <button onclick="document.getElementById('share-modal').classList.add('hidden')" class="flex-1 py-4 bg-white rounded-2xl font-black text-xs uppercase text-slate-400">Close</button>
-                <button id="btn-download-share" class="flex-1 py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl">Save Invitation</button>
-            </div>
-        </div>
-    </div>
-
     <!-- TRANSACTION CONFIRMATION MODAL -->
     <div id="confirm-modal" class="fixed inset-0 z-50 hidden modal-bg flex items-center justify-center p-4">
         <div class="bg-white rounded-[2.5rem] max-w-sm w-full p-8 shadow-2xl space-y-6">
@@ -124,11 +79,9 @@
                 </div>
             </div>
             <div class="flex items-center gap-4">
-                <!-- UPDATE THIS LINE (Line 115) -->
-<div id="display-view-code" onclick="window.openShareCard()" class="hidden bg-amber-50 text-amber-700 px-3 py-1.5 rounded-xl text-xs font-bold border border-amber-200 cursor-pointer hover:bg-amber-100 transition-all flex items-center gap-2">
-    CODE: <span id="group-code-val" class="font-black">---</span>
-    <span class="text-[10px]">📤</span>
-</div>
+                <div id="display-view-code" class="hidden bg-amber-50 text-amber-700 px-3 py-1.5 rounded-xl text-xs font-bold border border-amber-200">
+                    CODE: <span id="group-code-val" class="select-all font-black">---</span>
+                </div>
                 <select id="group-selector" class="p-3 bg-slate-100 border-none rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-green-500 w-48 cursor-pointer shadow-inner">
                     <option value="">-- Select Group --</option>
                 </select>
@@ -581,45 +534,6 @@
             document.getElementById('rcpt-date').innerText = date + " (Re-issued)";
             document.getElementById('receipt-modal').classList.remove('hidden');
         };
-
-        // Function to open and populate the Invitation Card
-window.openShareCard = () => {
-    const code = document.getElementById('group-code-val').innerText;
-    if(code === "---") return alert("Please select a group first");
-
-    // Populate Data
-    document.getElementById('share-group-name').innerText = document.getElementById('group-selector').options[document.getElementById('group-selector').selectedIndex].text;
-    document.getElementById('share-group-amount').innerText = `₱${groupTarget.toLocaleString()}`;
-    document.getElementById('share-group-code').innerText = code;
-
-    // Populate Member List (Limit to 12 for card space)
-    const listDiv = document.getElementById('share-member-list');
-    listDiv.innerHTML = '';
-    rawMembers.slice(0, 12).forEach(m => {
-        listDiv.innerHTML += `<span>• ${m.name}</span>`;
-    });
-    if(rawMembers.length > 12) listDiv.innerHTML += `<span>+ ${rawMembers.length - 12} more...</span>`;
-
-    document.getElementById('share-modal').classList.remove('hidden');
-};
-
-// Download logic for the invitation card
-document.getElementById('btn-download-share').onclick = () => {
-    const btn = document.getElementById('btn-download-share');
-    btn.innerText = "Processing...";
-    
-    html2canvas(document.querySelector("#share-card-capture"), { 
-        scale: 3, 
-        backgroundColor: "#ffffff",
-        useCORS: true 
-    }).then(canvas => {
-        const link = document.createElement('a');
-        link.download = `SALIG_Invite_${Date.now()}.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-        btn.innerText = "Save Invitation";
-    });
-};
 
     </script>
 </body>
