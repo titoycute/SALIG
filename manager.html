@@ -513,21 +513,70 @@
         window.closeModal = () => document.getElementById('confirm-modal').classList.add('hidden');
         document.getElementById('btn-modal-cancel').onclick = closeModal;
 
-        document.getElementById('btn-final-confirm').onclick = async () => {
-            try {
-                let docRef;
-                if (pendingType === "contribution") {
-                    docRef = await addDoc(collection(db, "contributions"), { groupId: selectedGroupId, managerUid: auth.currentUser.uid, memberId: pendingTx.id, memberName: pendingTx.name, amount: pendingTx.amt, appliedMonth: pendingTx.fM, appliedYear: pendingTx.fY, timestamp: serverTimestamp() });
-                    showReceipt({ type: "Contribution", name: pendingTx.name, cycle: `${pendingTx.fM} ${pendingTx.fY}`, amt: pendingTx.amt, ref: docRef.id });
-                    document.getElementById(`amt-${pendingTx.id}`).value = "";
-                } else {
-                    docRef = await addDoc(collection(db, "payouts"), { groupId: selectedGroupId, managerUid: auth.currentUser.uid, receiverId: pendingTx.recId, receiverName: pendingTx.name, month: pendingTx.fM, year: pendingTx.fY, amountGiven: pendingTx.amt, status: pendingTx.status, timestamp: serverTimestamp() });
-                    showReceipt({ type: "Pot Release", name: pendingTx.name, cycle: `${pendingTx.fM} ${pendingTx.fY}`, amt: pendingTx.amt, ref: docRef.id });
-                    document.getElementById('payout-amount').value = "";
-                }
-                closeModal();
-            } catch (e) { alert(e.message); }
-        };
+       let isSubmitting = false; 
+
+document.getElementById('btn-final-confirm').onclick = async () => {
+    // 1. Check if already submitting to prevent double-processing
+    if (isSubmitting || !pendingTx) return;
+    
+    const confirmBtn = document.getElementById('btn-final-confirm');
+    
+    try {
+        // 2. Lock the UI
+        isSubmitting = true;
+        confirmBtn.disabled = true;
+        confirmBtn.innerText = "Processing...";
+
+        let docRef;
+        if (pendingType === "contribution") {
+            docRef = await addDoc(collection(db, "contributions"), { 
+                groupId: selectedGroupId, 
+                managerUid: auth.currentUser.uid, 
+                memberId: pendingTx.id, 
+                memberName: pendingTx.name, 
+                amount: pendingTx.amt, 
+                appliedMonth: pendingTx.fM, 
+                appliedYear: pendingTx.fY, 
+                timestamp: serverTimestamp() 
+            });
+            showReceipt({ type: "Contribution", name: pendingTx.name, cycle: `${pendingTx.fM} ${pendingTx.fY}`, amt: pendingTx.amt, ref: docRef.id });
+            
+            // Clear the specific input field immediately
+            const inputField = document.getElementById(`amt-${pendingTx.id}`);
+            if(inputField) inputField.value = "";
+
+        } else {
+            docRef = await addDoc(collection(db, "payouts"), { 
+                groupId: selectedGroupId, 
+                managerUid: auth.currentUser.uid, 
+                receiverId: pendingTx.recId, 
+                receiverName: pendingTx.name, 
+                month: pendingTx.fM, 
+                year: pendingTx.fY, 
+                amountGiven: pendingTx.amt, 
+                status: pendingTx.status, 
+                timestamp: serverTimestamp() 
+            });
+            showReceipt({ type: "Pot Release", name: pendingTx.name, cycle: `${pendingTx.fM} ${pendingTx.fY}`, amt: pendingTx.amt, ref: docRef.id });
+            
+            // Clear payout input
+            document.getElementById('payout-amount').value = "";
+        }
+
+        // 3. Success: Close the modal
+        closeModal();
+
+    } catch (e) {
+        console.error("Transaction Error:", e);
+        alert("Transaction failed: " + e.message);
+    } finally {
+        // 4. Unlock the UI and reset button state
+        isSubmitting = false;
+        confirmBtn.disabled = false;
+        confirmBtn.innerText = "Confirm";
+        pendingTx = null; // Clear the pending data
+    }
+};
 
         // SIDEBAR ACTIONS
         document.getElementById('btn-create-group').onclick = async () => {
