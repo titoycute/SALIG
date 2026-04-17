@@ -15,9 +15,19 @@
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .modal-bg { background-color: rgba(0,0,0,0.6); backdrop-filter: blur(3px); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 0.8s linear infinite; }
     </style>
 </head>
 <body class="bg-yellow-50 min-h-screen p-4 md:p-8 text-slate-800 font-sans">
+
+    <!-- LOADING MODAL (prevents double clicks during Firestore write) -->
+    <div id="loading-modal" class="fixed inset-0 z-[80] hidden modal-bg flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl">
+            <div class="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-xs font-black uppercase tracking-widest text-slate-600">Processing transaction...</p>
+        </div>
+    </div>
 
     <!-- E-RECEIPT MODAL -->
     <div id="receipt-modal" class="fixed inset-0 z-[60] hidden modal-bg flex items-center justify-center p-4">
@@ -51,41 +61,32 @@
     <!-- GROUP SHARE/INVITATION MODAL -->
     <div id="share-modal" class="fixed inset-0 z-[70] hidden modal-bg flex items-center justify-center p-4">
         <div class="max-w-sm w-full space-y-4">
-            <!-- The Card to Capture -->
             <div id="share-card-capture" class="bg-white rounded-[2.5rem] p-10 shadow-2xl border border-slate-200 relative overflow-hidden text-center">
                 <div class="absolute -left-10 -top-10 w-40 h-40 bg-rose-50 rounded-full opacity-50"></div>
                 <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-green-50 rounded-full opacity-50"></div>
-                
                 <img src="logo.png" alt="SALIG" class="h-16 mx-auto mb-4 relative z-10">
                 <h2 class="text-2xl font-black italic uppercase tracking-tighter text-slate-800">Join our <span class="text-rose-600">Hub</span></h2>
                 <p id="share-group-name" class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">---</p>
-
                 <div class="bg-slate-50 rounded-3xl p-6 mb-6 border border-slate-100">
                     <p class="text-[8px] font-black text-slate-400 uppercase mb-2">Contribution Amount</p>
                     <p id="share-group-amount" class="text-3xl font-black text-slate-900 mb-1">₱0.00</p>
                     <p class="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Per Turn Cycle</p>
                 </div>
-
                 <div class="space-y-4 mb-8">
                     <div>
                         <p class="text-[8px] font-black text-slate-400 uppercase mb-2 italic">Access Code</p>
                         <p id="share-group-code" class="text-4xl font-black text-rose-600 tracking-[0.2em] border-2 border-dashed border-rose-200 py-3 rounded-2xl bg-rose-50/50">------</p>
                     </div>
-                    
                     <div class="text-left">
                         <p class="text-[8px] font-black text-slate-400 uppercase mb-2 border-b pb-1">Joined Members</p>
-                        <div id="share-member-list" class="text-[9px] font-bold text-slate-700 grid grid-cols-2 gap-x-4 gap-y-1 uppercase italic">
-                            <!-- Members injected here -->
-                        </div>
+                        <div id="share-member-list" class="text-[9px] font-bold text-slate-700 grid grid-cols-2 gap-x-4 gap-y-1 uppercase italic"></div>
                     </div>
                 </div>
-
                 <div class="pt-6 border-t border-slate-100">
                     <p class="text-[7px] font-black text-slate-400 uppercase mb-2">View Group Progress at:</p>
                     <p class="text-[9px] font-black text-slate-900 bg-yellow-100 py-2 rounded-xl border border-yellow-200">ph.salig.page.gd</p>
                 </div>
             </div>
-
             <div class="flex gap-2">
                 <button onclick="document.getElementById('share-modal').classList.add('hidden')" class="flex-1 py-4 bg-white rounded-2xl font-black text-xs uppercase text-slate-400">Close</button>
                 <button id="btn-download-share" class="flex-1 py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl">Save Invitation</button>
@@ -124,11 +125,10 @@
                 </div>
             </div>
             <div class="flex items-center gap-4">
-                <!-- UPDATE THIS LINE (Line 115) -->
-<div id="display-view-code" onclick="window.openShareCard()" class="hidden bg-amber-50 text-amber-700 px-3 py-1.5 rounded-xl text-xs font-bold border border-amber-200 cursor-pointer hover:bg-amber-100 transition-all flex items-center gap-2">
-    CODE: <span id="group-code-val" class="font-black">---</span>
-    <span class="text-[10px]">📤</span>
-</div>
+                <div id="display-view-code" onclick="window.openShareCard()" class="hidden bg-amber-50 text-amber-700 px-3 py-1.5 rounded-xl text-xs font-bold border border-amber-200 cursor-pointer hover:bg-amber-100 transition-all flex items-center gap-2">
+                    CODE: <span id="group-code-val" class="font-black">---</span>
+                    <span class="text-[10px]">📤</span>
+                </div>
                 <select id="group-selector" class="p-3 bg-slate-100 border-none rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-green-500 w-48 cursor-pointer shadow-inner">
                     <option value="">-- Select Group --</option>
                 </select>
@@ -196,13 +196,7 @@
                         <div class="max-h-64 overflow-y-auto pr-2">
                             <table class="w-full text-left text-[10px] uppercase font-bold">
                                 <thead class="bg-slate-50 sticky top-0 text-slate-400 border-b">
-                                    <tr>
-                                        <th class="p-3">Date</th>
-                                        <th class="p-3">Member</th>
-                                        <th class="p-3">Turn</th>
-                                        <th class="p-3">Amount</th>
-                                        <th class="p-3 text-right">Action</th>
-                                    </tr>
+                                    <tr><th class="p-3">Date</th><th class="p-3">Member</th><th class="p-3">Turn</th><th class="p-3">Amount</th><th class="p-3 text-right">Action</th></tr>
                                 </thead>
                                 <tbody id="history-table-body" class="divide-y text-slate-400"></tbody>
                             </table>
@@ -273,7 +267,7 @@
     <script type="module">
         import { db, auth } from './config.js';
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, addDoc, query, where, onSnapshot, serverTimestamp, doc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, addDoc, query, where, onSnapshot, serverTimestamp, doc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // GLOBAL ARRAYS
         let rawMembers = [], rawContr = [], rawPayouts = [];
@@ -362,7 +356,7 @@
                     <td class="p-4 uppercase text-[11px] font-black">${m.name}</td>
                     <td class="p-4 text-center font-bold">${badge}</td>
                     <td class="p-4 text-center">₱<input type="number" id="amt-${m.id}" ${isRec ? 'disabled placeholder="EXEMPT"' : ''} class="w-16 p-1 border rounded bg-white font-black text-xs text-center outline-none focus:ring-1 focus:ring-green-400 ${isRec ? 'bg-slate-100 opacity-50' : ''}"></td>
-                    <td class="p-4 text-center"><button ${isRec ? 'disabled' : `onclick="window.prePost('${m.id}', '${m.name}', '${m.payoutMonth}', '${m.payoutYear}')"`} class="${isRec ? 'bg-slate-300' : 'bg-slate-800'} text-white px-5 py-1.5 rounded-xl text-[10px] font-black uppercase shadow-sm">${isRec ? 'N/A' : 'Post'}</button></td>
+                    <td class="p-4 text-center"><button ${isRec ? 'disabled' : `data-member-id="${m.id}" onclick="window.prePost(this, '${m.id}', '${m.name}', '${m.payoutMonth}', '${m.payoutYear}')"`} class="post-btn ${isRec ? 'bg-slate-300' : 'bg-slate-800'} text-white px-5 py-1.5 rounded-xl text-[10px] font-black uppercase shadow-sm">${isRec ? 'N/A' : 'Post'}</button></td>
                 </tr>`;
             });
         }
@@ -477,20 +471,39 @@
         }
 
         // ACTIONS
-        window.prePost = (id, name, pM, pY) => {
-            const turn = document.getElementById('active-cycle-filter').value; if(!turn) return;
+        window.prePost = (btn, id, name, pM, pY) => {
+            // Prevent double-click on Post button
+            if (btn.disabled) return;
+            
+            const turn = document.getElementById('active-cycle-filter').value;
+            if (!turn) return;
             const [fM, fY] = turn.split(' ');
-            if(fM === pM && fY == pY) return alert("Receiver is exempted.");
+            if (fM === pM && fY == pY) {
+                alert("Receiver is exempted.");
+                return;
+            }
             const amt = parseFloat(document.getElementById(`amt-${id}`).value);
-            if(!amt || amt <= 0) return alert("Enter amount");
+            if (!amt || amt <= 0) {
+                alert("Enter amount");
+                return;
+            }
             const already = rawContr.filter(c => c.memberId === id && c.appliedMonth === fM && c.appliedYear == fY).reduce((s,c) => s + c.amount, 0);
             const rem = groupTarget - already;
-            if(amt > rem) return alert(`Limit: ₱${rem.toLocaleString()}`);
+            if (amt > rem) {
+                alert(`Limit: ₱${rem.toLocaleString()}`);
+                return;
+            }
             
-            pendingTx = { id, name, amt, fM, fY, rem }; pendingType = "contribution";
+            // Disable the button to prevent further clicks
+            btn.disabled = true;
+            
+            pendingTx = { id, name, amt, fM, fY, rem, btn };
+            pendingType = "contribution";
             document.getElementById('confirm-modal-title').innerText = "Verify Transaction";
-            document.getElementById('conf-name').innerText = name; document.getElementById('conf-cycle').innerText = turn;
-            document.getElementById('conf-amt').innerText = `₱${amt.toLocaleString()}`; document.getElementById('conf-bal').innerText = `₱${(rem - amt).toLocaleString()}`;
+            document.getElementById('conf-name').innerText = name;
+            document.getElementById('conf-cycle').innerText = turn;
+            document.getElementById('conf-amt').innerText = `₱${amt.toLocaleString()}`;
+            document.getElementById('conf-bal').innerText = `₱${(rem - amt).toLocaleString()}`;
             document.getElementById('confirm-modal').classList.remove('hidden');
         };
 
@@ -505,79 +518,92 @@
             pendingTx = { recId: rec.id, name: rec.name, amt, fM, fY, status: document.getElementById('payout-status').value };
             pendingType = "payout";
             document.getElementById('confirm-modal-title').innerText = "Verify Pot Release";
-            document.getElementById('conf-name').innerText = rec.name; document.getElementById('conf-cycle').innerText = `${turn} (POT)`;
-            document.getElementById('conf-amt').innerText = `₱${amt.toLocaleString()}`; document.getElementById('conf-bal').innerText = `₱${(expPot - releases - amt).toLocaleString()}`;
+            document.getElementById('conf-name').innerText = rec.name;
+            document.getElementById('conf-cycle').innerText = `${turn} (POT)`;
+            document.getElementById('conf-amt').innerText = `₱${amt.toLocaleString()}`;
+            document.getElementById('conf-bal').innerText = `₱${(expPot - releases - amt).toLocaleString()}`;
             document.getElementById('confirm-modal').classList.remove('hidden');
         };
 
         window.closeModal = () => document.getElementById('confirm-modal').classList.add('hidden');
-        document.getElementById('btn-modal-cancel').onclick = closeModal;
+        
+        // Cancel button: re-enable the Post button if it exists
+        document.getElementById('btn-modal-cancel').onclick = () => {
+            if (pendingTx && pendingTx.btn) {
+                pendingTx.btn.disabled = false;
+            }
+            closeModal();
+            pendingTx = null;
+        };
 
-       let isSubmitting = false; 
+        let isSubmitting = false;
 
 document.getElementById('btn-final-confirm').onclick = async () => {
-    // 1. Check if already submitting to prevent double-processing
     if (isSubmitting || !pendingTx) return;
     
     const confirmBtn = document.getElementById('btn-final-confirm');
+    const loadingModal = document.getElementById('loading-modal');
     
     try {
-        // 2. Lock the UI
         isSubmitting = true;
         confirmBtn.disabled = true;
         confirmBtn.innerText = "Processing...";
-
+        loadingModal.classList.remove('hidden');
+        
         let docRef;
         if (pendingType === "contribution") {
-            docRef = await addDoc(collection(db, "contributions"), { 
-                groupId: selectedGroupId, 
-                managerUid: auth.currentUser.uid, 
-                memberId: pendingTx.id, 
-                memberName: pendingTx.name, 
-                amount: pendingTx.amt, 
-                appliedMonth: pendingTx.fM, 
-                appliedYear: pendingTx.fY, 
-                timestamp: serverTimestamp() 
+            // Use addDoc - allows multiple partial payments for same month
+            docRef = await addDoc(collection(db, "contributions"), {
+                groupId: selectedGroupId,
+                managerUid: auth.currentUser.uid,
+                memberId: pendingTx.id,
+                memberName: pendingTx.name,
+                amount: pendingTx.amt,
+                appliedMonth: pendingTx.fM,
+                appliedYear: pendingTx.fY,
+                timestamp: serverTimestamp()
             });
             showReceipt({ type: "Contribution", name: pendingTx.name, cycle: `${pendingTx.fM} ${pendingTx.fY}`, amt: pendingTx.amt, ref: docRef.id });
             
-            // Clear the specific input field immediately
+            // Clear input and re-enable the Post button
             const inputField = document.getElementById(`amt-${pendingTx.id}`);
-            if(inputField) inputField.value = "";
-
+            if (inputField) inputField.value = "";
+            if (pendingTx.btn) pendingTx.btn.disabled = false;
+            
         } else {
-            docRef = await addDoc(collection(db, "payouts"), { 
-                groupId: selectedGroupId, 
-                managerUid: auth.currentUser.uid, 
-                receiverId: pendingTx.recId, 
-                receiverName: pendingTx.name, 
-                month: pendingTx.fM, 
-                year: pendingTx.fY, 
-                amountGiven: pendingTx.amt, 
-                status: pendingTx.status, 
-                timestamp: serverTimestamp() 
+            // Payout (no change)
+            docRef = await addDoc(collection(db, "payouts"), {
+                groupId: selectedGroupId,
+                managerUid: auth.currentUser.uid,
+                receiverId: pendingTx.recId,
+                receiverName: pendingTx.name,
+                month: pendingTx.fM,
+                year: pendingTx.fY,
+                amountGiven: pendingTx.amt,
+                status: pendingTx.status,
+                timestamp: serverTimestamp()
             });
             showReceipt({ type: "Pot Release", name: pendingTx.name, cycle: `${pendingTx.fM} ${pendingTx.fY}`, amt: pendingTx.amt, ref: docRef.id });
-            
-            // Clear payout input
             document.getElementById('payout-amount').value = "";
         }
-
-        // 3. Success: Close the modal
+        
         closeModal();
-
+        
     } catch (e) {
         console.error("Transaction Error:", e);
         alert("Transaction failed: " + e.message);
+        // Re-enable the button if it was a contribution
+        if (pendingType === "contribution" && pendingTx.btn) {
+            pendingTx.btn.disabled = false;
+        }
     } finally {
-        // 4. Unlock the UI and reset button state
+        loadingModal.classList.add('hidden');
         isSubmitting = false;
         confirmBtn.disabled = false;
         confirmBtn.innerText = "Confirm";
-        pendingTx = null; // Clear the pending data
+        pendingTx = null;
     }
 };
-
         // SIDEBAR ACTIONS
         document.getElementById('btn-create-group').onclick = async () => {
             const n = document.getElementById('g-name').value, a = document.getElementById('g-amount').value, vc = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -632,44 +658,35 @@ document.getElementById('btn-final-confirm').onclick = async () => {
         };
 
         // Function to open and populate the Invitation Card
-window.openShareCard = () => {
-    const code = document.getElementById('group-code-val').innerText;
-    if(code === "---") return alert("Please select a group first");
+        window.openShareCard = () => {
+            const code = document.getElementById('group-code-val').innerText;
+            if(code === "---") return alert("Please select a group first");
 
-    // Populate Data
-    document.getElementById('share-group-name').innerText = document.getElementById('group-selector').options[document.getElementById('group-selector').selectedIndex].text;
-    document.getElementById('share-group-amount').innerText = `₱${groupTarget.toLocaleString()}`;
-    document.getElementById('share-group-code').innerText = code;
+            document.getElementById('share-group-name').innerText = document.getElementById('group-selector').options[document.getElementById('group-selector').selectedIndex].text;
+            document.getElementById('share-group-amount').innerText = `₱${groupTarget.toLocaleString()}`;
+            document.getElementById('share-group-code').innerText = code;
 
-    // Populate Member List (Limit to 12 for card space)
-    const listDiv = document.getElementById('share-member-list');
-    listDiv.innerHTML = '';
-    rawMembers.slice(0, 12).forEach(m => {
-        listDiv.innerHTML += `<span>• ${m.name}</span>`;
-    });
-    if(rawMembers.length > 12) listDiv.innerHTML += `<span>+ ${rawMembers.length - 12} more...</span>`;
+            const listDiv = document.getElementById('share-member-list');
+            listDiv.innerHTML = '';
+            rawMembers.slice(0, 12).forEach(m => {
+                listDiv.innerHTML += `<span>• ${m.name}</span>`;
+            });
+            if(rawMembers.length > 12) listDiv.innerHTML += `<span>+ ${rawMembers.length - 12} more...</span>`;
 
-    document.getElementById('share-modal').classList.remove('hidden');
-};
+            document.getElementById('share-modal').classList.remove('hidden');
+        };
 
-// Download logic for the invitation card
-document.getElementById('btn-download-share').onclick = () => {
-    const btn = document.getElementById('btn-download-share');
-    btn.innerText = "Processing...";
-    
-    html2canvas(document.querySelector("#share-card-capture"), { 
-        scale: 3, 
-        backgroundColor: "#ffffff",
-        useCORS: true 
-    }).then(canvas => {
-        const link = document.createElement('a');
-        link.download = `SALIG_Invite_${Date.now()}.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-        btn.innerText = "Save Invitation";
-    });
-};
-
+        document.getElementById('btn-download-share').onclick = () => {
+            const btn = document.getElementById('btn-download-share');
+            btn.innerText = "Processing...";
+            html2canvas(document.querySelector("#share-card-capture"), { scale: 3, backgroundColor: "#ffffff", useCORS: true }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `SALIG_Invite_${Date.now()}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+                btn.innerText = "Save Invitation";
+            });
+        };
     </script>
 </body>
 </html>
