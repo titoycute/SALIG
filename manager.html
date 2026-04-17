@@ -126,7 +126,7 @@
             <div class="flex items-center gap-4">
                 <img src="logo.png" alt="SALIG" class="h-12 w-auto">
                 <div>
-                    <h1 class="text-2xl font-black text-slate-800 tracking-tighter italic uppercase">Salig <span class="text-rose-700 font-sans">Hub 1.1</span></h1>
+                    <h1 class="text-2xl font-black text-slate-800 tracking-tighter italic uppercase">Salig <span class="text-rose-700 font-sans">Hub 2323</span></h1>
                     <p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest" id="header-date"></p>
                 </div>
             </div>
@@ -138,6 +138,7 @@
                 <select id="group-selector" class="p-3 bg-slate-100 border-none rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-green-500 w-48 cursor-pointer shadow-inner">
                     <option value="">-- Select Group --</option>
                 </select>
+                <button id="nav-refresh" class="text-xs font-bold text-slate-400 hover:text-green-600 transition uppercase tracking-widest mr-2">⟳ Refresh</button>
                 <button id="nav-logout" class="text-xs font-bold text-slate-400 hover:text-rose-600 transition uppercase tracking-widest">Logout</button>
             </div>
         </header>
@@ -294,6 +295,15 @@
                 btn.classList.add('tab-active'); views[i].classList.remove('hidden-tab');
             };
         });
+
+        document.getElementById('nav-refresh').onclick = () => {
+    // Show a quick alert or disable button to indicate refresh
+    const btn = document.getElementById('nav-refresh');
+    btn.innerText = "⟳ Loading...";
+    btn.disabled = true;
+    // Force reload from server, bypassing cache
+    window.location.href = window.location.pathname + '?v=' + Date.now();
+};
 
         // DATA SYNC
         function loadGroups(uid) {
