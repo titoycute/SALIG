@@ -1,4 +1,4 @@
-const CACHE_NAME = 'salig-v1';
+const CACHE_NAME = 'salig-v1.1';
 const ASSETS = [
   'index.html',
   'login.html',
