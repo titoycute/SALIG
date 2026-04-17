@@ -548,22 +548,14 @@ document.getElementById('btn-final-confirm').onclick = async () => {
     if (isSubmitting || !pendingTx) return;
     
     const confirmBtn = document.getElementById('btn-final-confirm');
-    const loadingModal = document.getElementById('loading-modal');
     
     try {
         isSubmitting = true;
         confirmBtn.disabled = true;
         confirmBtn.innerText = "Processing...";
         
-        // Immediately close the confirmation modal
+        // Close confirmation modal immediately
         closeModal();
-        
-        // Show loading modal and force repaint for mobile
-        loadingModal.classList.remove('hidden');
-        loadingModal.offsetHeight; // force reflow
-        
-        // Small delay to ensure modal renders on slow mobile devices
-        await new Promise(resolve => setTimeout(resolve, 30));
         
         let docRef;
         if (pendingType === "contribution") {
@@ -606,14 +598,14 @@ document.getElementById('btn-final-confirm').onclick = async () => {
             pendingTx.btn.disabled = false;
         }
     } finally {
-        loadingModal.classList.add('hidden');
         isSubmitting = false;
         confirmBtn.disabled = false;
         confirmBtn.innerText = "Confirm";
         pendingTx = null;
     }
 };
-        // SIDEBAR ACTIONS
+
+// SIDEBAR ACTIONS
         document.getElementById('btn-create-group').onclick = async () => {
             const n = document.getElementById('g-name').value, a = document.getElementById('g-amount').value, vc = Math.random().toString(36).substring(2, 8).toUpperCase();
             if(!n || !a) return alert("Fill fields");
