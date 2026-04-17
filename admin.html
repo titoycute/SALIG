@@ -4,305 +4,1026 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SALIG | Super Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        .tab-active { border-bottom: 3px solid #dc2626; color: #dc2626; font-weight: 800; }
-        .hidden-tab { display: none; }
+        :root {
+            --bg:       #070a0f;
+            --surface:  #0d1117;
+            --surface2: #131920;
+            --border:   #1e2a35;
+            --border2:  #243040;
+            --text:     #e2eaf3;
+            --muted:    #4a6070;
+            --red:      #e8395a;
+            --red-bg:   rgba(232,57,90,0.12);
+            --green:    #22d693;
+            --green-bg: rgba(34,214,147,0.10);
+            --amber:    #f5a623;
+            --amber-bg: rgba(245,166,35,0.12);
+            --blue:     #4f9ef8;
+            --blue-bg:  rgba(79,158,248,0.10);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        /* ─── Scanline overlay ─── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* ─── Layout ─── */
+        .shell { max-width: 1280px; margin: 0 auto; padding: 24px 20px; display: flex; flex-direction: column; gap: 20px; }
+
+        /* ─── Header ─── */
+        header {
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 18px 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        header::after {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, var(--red), var(--amber), var(--green));
+        }
+        .logo-block h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 22px; font-weight: 900; letter-spacing: -0.5px;
+            color: #fff;
+        }
+        .logo-block h1 span { color: var(--red); }
+        .logo-block p { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.25em; margin-top: 2px; }
+        .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+        /* ─── Stat chips ─── */
+        .stat-chip {
+            display: flex; align-items: center; gap: 6px;
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 10px; padding: 7px 12px;
+            font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted);
+        }
+        .stat-chip .val { color: var(--text); font-weight: 700; font-size: 12px; }
+        .stat-chip .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+        /* ─── Buttons ─── */
+        .btn { display: inline-flex; align-items: center; gap: 5px; border: none; border-radius: 9px; font-family: 'DM Sans', sans-serif; font-weight: 600; cursor: pointer; transition: all .15s; letter-spacing: 0.02em; }
+        .btn-sm { padding: 5px 12px; font-size: 11px; }
+        .btn-md { padding: 8px 16px; font-size: 12px; }
+        .btn-red    { background: var(--red);    color: #fff; }
+        .btn-red:hover    { background: #ff4d6d; }
+        .btn-green  { background: var(--green);  color: #071a12; }
+        .btn-green:hover  { background: #2affa8; }
+        .btn-ghost  { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+        .btn-ghost:hover  { color: var(--text); border-color: var(--border2); }
+        .btn-amber  { background: var(--amber);  color: #1a0e00; }
+        .btn-amber:hover  { background: #ffbe40; }
+        .btn-danger { background: var(--red-bg); color: var(--red); border: 1px solid rgba(232,57,90,0.2); }
+        .btn-danger:hover { background: var(--red); color: #fff; }
+        .btn-success { background: var(--green-bg); color: var(--green); border: 1px solid rgba(34,214,147,0.2); }
+        .btn-success:hover { background: var(--green); color: #071a12; }
+
+        /* ─── Global selector ─── */
+        select, input[type="text"], input[type="number"] {
+            background: var(--surface2); border: 1px solid var(--border);
+            color: var(--text); border-radius: 10px; padding: 8px 12px;
+            font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none;
+            transition: border-color .15s;
+        }
+        select:focus, input:focus { border-color: var(--blue); }
+
+        /* ─── Tab bar ─── */
+        .tabs {
+            display: flex; gap: 4px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 5px;
+            overflow-x: auto;
+        }
+        .tab-btn {
+            flex-shrink: 0; padding: 7px 16px; border-radius: 10px;
+            font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 800;
+            letter-spacing: 0.08em; text-transform: uppercase;
+            border: none; cursor: pointer; background: transparent; color: var(--muted);
+            transition: all .15s; position: relative;
+        }
+        .tab-btn:hover { color: var(--text); }
+        .tab-btn.active { background: var(--surface2); color: #fff; border: 1px solid var(--border2); }
+        .tab-btn .badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 16px; height: 16px; border-radius: 50%;
+            background: var(--amber); color: #1a0e00;
+            font-size: 9px; font-family: 'Space Mono', monospace; font-weight: 700;
+            margin-left: 6px;
+        }
+
+        /* ─── Card ─── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+        }
+        .card-header {
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface2);
+        }
+        .card-title {
+            font-family: 'Syne', sans-serif; font-weight: 800; font-size: 11px;
+            letter-spacing: 0.15em; text-transform: uppercase;
+        }
+        .card-title.green { color: var(--green); }
+        .card-title.red   { color: var(--red); }
+        .card-title.amber { color: var(--amber); }
+        .card-title.blue  { color: var(--blue); }
+
+        /* ─── Search + filter bar ─── */
+        .toolbar {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+        }
+        .search-wrap { position: relative; flex: 1; min-width: 160px; }
+        .search-wrap input { width: 100%; padding-left: 32px; }
+        .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
+
+        /* ─── Sort button ─── */
+        .sort-btn {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: none; border: none; cursor: pointer;
+            color: var(--muted); font-family: 'Space Mono', monospace; font-size: 9px;
+            letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 4px;
+            transition: color .15s;
+        }
+        .sort-btn:hover, .sort-btn.asc, .sort-btn.desc { color: var(--text); }
+        .sort-btn .arrow { font-size: 10px; }
+        .sort-btn.asc .arrow::after  { content: ' ▲'; }
+        .sort-btn.desc .arrow::after { content: ' ▼'; }
+        .sort-btn:not(.asc):not(.desc) .arrow::after { content: ' ⇅'; }
+
+        /* ─── Table ─── */
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: var(--surface2);
+            padding: 10px 16px;
+            font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.15em;
+            text-transform: uppercase; color: var(--muted); text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tbody tr { transition: background .12s; }
+        tbody tr:hover { background: var(--surface2); }
+
+        /* ─── Inline edit inputs ─── */
+        .inline-input {
+            background: transparent; border: none; border-bottom: 1px solid var(--border);
+            color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px;
+            width: 100%; outline: none; padding: 2px 4px;
+            transition: border-color .15s;
+        }
+        .inline-input:focus { border-color: var(--green); }
+        .inline-input.mono { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--green); }
+
+        /* ─── Status pills ─── */
+        .pill {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 9px; border-radius: 999px;
+            font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700;
+            letter-spacing: 0.08em; text-transform: uppercase;
+        }
+        .pill-dot { width: 5px; height: 5px; border-radius: 50%; }
+        .pill.approved  { background: var(--green-bg);  color: var(--green);  }
+        .pill.approved .pill-dot { background: var(--green); }
+        .pill.pending   { background: var(--amber-bg);  color: var(--amber);  }
+        .pill.pending .pill-dot { background: var(--amber); }
+        .pill.deactivated { background: var(--red-bg); color: var(--red); }
+        .pill.deactivated .pill-dot { background: var(--red); }
+
+        /* ─── Code badge ─── */
+        .code-badge {
+            font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700;
+            color: var(--red); letter-spacing: 0.2em;
+            background: var(--red-bg); border: 1px solid rgba(232,57,90,0.25);
+            padding: 3px 10px; border-radius: 8px;
+        }
+        .code-missing { color: var(--red); animation: pulse 1s ease-in-out infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* ─── Views ─── */
+        .view { display: none; }
+        .view.active { display: block; }
+        .view-grid { display: none; gap: 16px; }
+        .view-grid.active { display: grid; grid-template-columns: 1fr 1fr; }
+        @media(max-width: 860px) { .view-grid.active { grid-template-columns: 1fr; } }
+
+        /* ─── Empty state ─── */
+        .empty {
+            padding: 48px 20px; text-align: center;
+            color: var(--muted); font-family: 'Space Mono', monospace; font-size: 11px;
+            letter-spacing: 0.1em;
+        }
+        .empty-icon { font-size: 28px; margin-bottom: 10px; opacity: 0.4; }
+
+        /* ─── Toast ─── */
+        #toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: var(--surface); border: 1px solid var(--border);
+            color: var(--text); padding: 12px 20px; border-radius: 12px;
+            font-size: 12px; font-family: 'Space Mono', monospace;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+            transform: translateY(80px); opacity: 0;
+            transition: all .25s cubic-bezier(.22,1,.36,1);
+            z-index: 1000; max-width: 320px;
+        }
+        #toast.show { transform: translateY(0); opacity: 1; }
+        #toast.success { border-color: rgba(34,214,147,0.4); }
+        #toast.error   { border-color: rgba(232,57,90,0.4); }
+
+        /* ─── Scrollbar ─── */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+        /* ─── Confirm modal ─── */
+        #modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(7,10,15,0.85); backdrop-filter: blur(4px);
+            z-index: 500; align-items: center; justify-content: center;
+        }
+        #modal-overlay.show { display: flex; }
+        #modal-box {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 18px; padding: 28px; max-width: 380px; width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        }
+        #modal-box h3 { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 900; margin-bottom: 8px; }
+        #modal-box p  { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
         input[type="number"]::-webkit-inner-spin-button { display: none; }
-        .status-pill { padding: 2px 8px; border-radius: 9999px; font-size: 9px; font-weight: 900; text-transform: uppercase; }
-        .status-approved { background-color: #064e3b; color: #34d399; }
-        .status-pending { background-color: #78350f; color: #fbbf24; }
-        .status-deactivated { background-color: #7f1d1d; color: #f87171; }
+
+        /* ─── Count badge ─── */
+        .row-count { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); }
     </style>
 </head>
-<body class="bg-slate-950 min-h-screen p-4 md:p-8 text-slate-100 font-sans">
+<body>
 
-    <div class="max-w-7xl mx-auto space-y-6">
-        <!-- ADMIN HEADER -->
-        <header class="flex flex-col md:flex-row justify-between items-center bg-slate-900 p-6 rounded-3xl border border-rose-500/20 gap-4 shadow-2xl">
-            <div>
-                <h1 class="text-3xl font-black tracking-tighter text-white uppercase italic">Super Admin <span class="text-rose-500">God Mode</span></h1>
-                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em]">SALIG Central Command • v1.1</p>
-            </div>
-            <div class="flex items-center gap-4">
-                <select id="global-group-selector" class="p-3 bg-slate-800 border border-slate-700 rounded-xl font-bold text-white outline-none focus:ring-2 focus:ring-rose-500 w-64">
-                    <option value="">-- Select Group --</option>
-                </select>
-                <button id="nav-logout" class="bg-rose-600 hover:bg-rose-700 px-6 py-2.5 rounded-xl text-xs font-black transition uppercase tracking-widest">Logout</button>
-            </div>
-        </header>
+<div class="shell">
 
-        <!-- ADMIN TAB NAVIGATION -->
-        <div class="flex space-x-8 border-b border-slate-800 mb-4 px-4 overflow-x-auto">
-            <button id="tab-groups" class="pb-3 text-[10px] font-black tab-active uppercase tracking-widest whitespace-nowrap">Groups</button>
-            <button id="tab-members" class="pb-3 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Members</button>
-            <button id="tab-history" class="pb-3 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Audit Logs</button>
-            <button id="tab-requests" class="pb-3 text-[10px] font-black text-amber-500 uppercase tracking-widest whitespace-nowrap">Requests</button>
-            <button id="tab-users" class="pb-3 text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">User Management</button>
+    <!-- HEADER -->
+    <header>
+        <div class="logo-block">
+            <h1>SALIG <span>God Mode</span></h1>
+            <p>SUPER ADMIN CENTRAL COMMAND • v2.0</p>
         </div>
-
-        <!-- 1. MANAGE GROUPS -->
-        <div id="view-groups" class="space-y-6">
-            <div class="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-xl">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-950 text-slate-500 text-[10px] uppercase font-black">
-                        <tr><th class="p-4">Group Name</th><th class="p-4">Target (₱)</th><th class="p-4">View Code</th><th class="p-4 text-center">Actions</th></tr>
-                    </thead>
-                    <tbody id="admin-group-list" class="divide-y divide-slate-800"></tbody>
-                </table>
-            </div>
+        <div class="header-right">
+            <div class="stat-chip"><span class="dot" style="background:var(--green)"></span> <span class="val" id="stat-groups">—</span> GROUPS</div>
+            <div class="stat-chip"><span class="dot" style="background:var(--amber)"></span> <span class="val" id="stat-pending">—</span> PENDING</div>
+            <div class="stat-chip"><span class="dot" style="background:var(--blue)"></span> <span class="val" id="stat-users">—</span> USERS</div>
+            <select id="global-group-selector" style="min-width:200px">
+                <option value="">— Select Group to Audit —</option>
+            </select>
+            <button id="nav-logout" class="btn btn-md btn-red">Logout</button>
         </div>
+    </header>
 
-        <!-- 2. EDIT MEMBERS -->
-        <div id="view-members" class="hidden-tab space-y-6">
-            <div class="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-xl">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-950 text-slate-500 text-[10px] uppercase font-black">
-                        <tr><th class="p-4">Member Name</th><th class="p-4">Payout Month</th><th class="p-4 text-center">Actions</th></tr>
-                    </thead>
-                    <tbody id="admin-member-list" class="divide-y divide-slate-800"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 3. AUDIT LOGS -->
-        <div id="view-history" class="hidden-tab grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-xl">
-                <div class="p-4 bg-slate-950 font-black text-[10px] uppercase text-emerald-500 tracking-widest border-b border-slate-800">Contribution Audit (Live Edit)</div>
-                <div class="max-h-[500px] overflow-y-auto">
-                    <table class="w-full text-[10px] uppercase font-bold">
-                        <tbody id="admin-contribution-logs" class="divide-y divide-slate-800"></tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-xl">
-                <div class="p-4 bg-slate-950 font-black text-[10px] uppercase text-rose-500 tracking-widest border-b border-slate-800">Payout Audit</div>
-                <div class="max-h-[500px] overflow-y-auto">
-                    <table class="w-full text-[10px] uppercase font-bold">
-                        <tbody id="admin-payout-logs" class="divide-y divide-slate-800"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- 4. PENDING REQUESTS -->
-        <div id="view-requests" class="hidden-tab space-y-6">
-            <div class="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-xl">
-                <div class="p-6 border-b border-slate-800 font-black text-amber-500 uppercase text-xs tracking-widest">Awaiting Approval</div>
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-950 text-slate-500 text-[10px] uppercase font-black">
-                        <tr><th class="p-4">Name</th><th class="p-4">Email</th><th class="p-4 text-center">Action</th></tr>
-                    </thead>
-                    <tbody id="admin-pending-list" class="divide-y divide-slate-800"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 5. USER MANAGEMENT (ACTIVATE/DEACTIVATE) -->
-        <div id="view-users" class="hidden-tab space-y-6">
-            <div class="bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-xl">
-                <div class="p-6 border-b border-slate-800 font-black text-emerald-500 uppercase text-xs tracking-widest">Registered Managers & Admins</div>
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-950 text-slate-500 text-[10px] uppercase font-black">
-                        <tr><th class="p-4">User Details</th><th class="p-4">Role</th><th class="p-4 text-center">Status</th><th class="p-4 text-center">Management</th></tr>
-                    </thead>
-                    <tbody id="admin-users-list" class="divide-y divide-slate-800"></tbody>
-                </table>
-            </div>
-        </div>
-
+    <!-- TABS -->
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="groups">Groups</button>
+        <button class="tab-btn" data-tab="members">Members</button>
+        <button class="tab-btn" data-tab="history">Audit Logs</button>
+        <button class="tab-btn" data-tab="requests">Requests <span class="badge" id="badge-requests" style="display:none">0</span></button>
+        <button class="tab-btn" data-tab="users">User Mgmt</button>
     </div>
 
-    <script type="module">
-        import { db, auth } from './config.js';
-        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    <!-- ── VIEW: GROUPS ── -->
+    <div id="view-groups" class="view active">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title green">Manage Groups</span>
+                <span id="groups-count" class="row-count"></span>
+            </div>
+            <div class="toolbar">
+                <div class="search-wrap">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="groups-search" placeholder="Search group name…">
+                </div>
+            </div>
+            <div style="overflow-x:auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th><button class="sort-btn" data-table="groups" data-col="name">Group Name<span class="arrow"></span></button></th>
+                            <th><button class="sort-btn" data-table="groups" data-col="amount">Target ₱<span class="arrow"></span></button></th>
+                            <th>View Code</th>
+                            <th style="text-align:center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-group-list"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-        let selectedGroupId = "";
+    <!-- ── VIEW: MEMBERS ── -->
+    <div id="view-members" class="view">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title blue">Edit Members</span>
+                <span id="members-count" class="row-count"></span>
+            </div>
+            <div class="toolbar">
+                <div class="search-wrap">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="members-search" placeholder="Search member name…">
+                </div>
+                <select id="members-month-filter">
+                    <option value="">All Months</option>
+                    <option>January</option><option>February</option><option>March</option>
+                    <option>April</option><option>May</option><option>June</option>
+                    <option>July</option><option>August</option><option>September</option>
+                    <option>October</option><option>November</option><option>December</option>
+                </select>
+            </div>
+            <div id="members-no-group" class="empty" style="display:none">
+                <div class="empty-icon">🔍</div>SELECT A GROUP FROM THE HEADER DROPDOWN
+            </div>
+            <div style="overflow-x:auto" id="members-table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th><button class="sort-btn" data-table="members" data-col="name">Member Name<span class="arrow"></span></button></th>
+                            <th><button class="sort-btn" data-table="members" data-col="payoutMonth">Payout Month<span class="arrow"></span></button></th>
+                            <th style="text-align:center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-member-list"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-        // AUTH & BOOTSTRAP
-        onAuthStateChanged(auth, u => { 
-            if(!u) window.location.href="login.html"; 
-            loadAllGroups(); 
-            loadRequests(); 
-            loadUsers();
-        });
-        document.getElementById('nav-logout').onclick = () => signOut(auth);
+    <!-- ── VIEW: AUDIT LOGS ── -->
+    <div id="view-history" class="view">
+        <div id="audit-no-group" class="card" style="display:none">
+            <div class="empty"><div class="empty-icon">📋</div>SELECT A GROUP FROM THE HEADER DROPDOWN TO VIEW AUDIT LOGS</div>
+        </div>
+        <div class="view-grid active" id="audit-grid" style="display:none">
+            <!-- Contributions -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title green">Contribution Audit (Editable)</span>
+                    <span id="contrib-count" class="row-count"></span>
+                </div>
+                <div class="toolbar">
+                    <div class="search-wrap">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="contrib-search" placeholder="Search member…">
+                    </div>
+                    <select id="contrib-month-filter">
+                        <option value="">All Months</option>
+                        <option>January</option><option>February</option><option>March</option>
+                        <option>April</option><option>May</option><option>June</option>
+                        <option>July</option><option>August</option><option>September</option>
+                        <option>October</option><option>November</option><option>December</option>
+                    </select>
+                </div>
+                <div style="overflow-x:auto; max-height:420px; overflow-y:auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th><button class="sort-btn" data-table="contrib" data-col="memberName">Member<span class="arrow"></span></button></th>
+                                <th><button class="sort-btn" data-table="contrib" data-col="amount">Amount<span class="arrow"></span></button></th>
+                                <th><button class="sort-btn" data-table="contrib" data-col="appliedMonth">Month<span class="arrow"></span></button></th>
+                                <th style="text-align:center">Act.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-contribution-logs"></tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- Payouts -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title red">Payout Audit</span>
+                    <span id="payout-count" class="row-count"></span>
+                </div>
+                <div class="toolbar">
+                    <div class="search-wrap">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="payout-search" placeholder="Search receiver…">
+                    </div>
+                    <select id="payout-month-filter">
+                        <option value="">All Months</option>
+                        <option>January</option><option>February</option><option>March</option>
+                        <option>April</option><option>May</option><option>June</option>
+                        <option>July</option><option>August</option><option>September</option>
+                        <option>October</option><option>November</option><option>December</option>
+                    </select>
+                </div>
+                <div style="overflow-x:auto; max-height:420px; overflow-y:auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th><button class="sort-btn" data-table="payout" data-col="receiverName">Receiver<span class="arrow"></span></button></th>
+                                <th><button class="sort-btn" data-table="payout" data-col="amountGiven">Amount ₱<span class="arrow"></span></button></th>
+                                <th><button class="sort-btn" data-table="payout" data-col="month">Month<span class="arrow"></span></button></th>
+                                <th style="text-align:center">Act.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-payout-logs"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        // TAB SWITCHER
-        const tabs = ['groups', 'members', 'history', 'requests', 'users'];
-        tabs.forEach(t => {
-            document.getElementById(`tab-${t}`).onclick = () => {
-                tabs.forEach(x => {
-                    document.getElementById(`view-${x}`).classList.add('hidden-tab');
-                    document.getElementById(`tab-${x}`).classList.remove('tab-active');
-                    document.getElementById(`tab-${x}`).classList.add('text-slate-500');
-                });
-                document.getElementById(`view-${t}`).classList.remove('hidden-tab');
-                document.getElementById(`tab-${t}`).classList.add('tab-active');
-            };
-        });
+    <!-- ── VIEW: REQUESTS ── -->
+    <div id="view-requests" class="view">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title amber">Awaiting Approval</span>
+                <span id="requests-count" class="row-count"></span>
+            </div>
+            <div class="toolbar">
+                <div class="search-wrap">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="requests-search" placeholder="Search name or email…">
+                </div>
+            </div>
+            <div style="overflow-x:auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th><button class="sort-btn" data-table="requests" data-col="name">Name<span class="arrow"></span></button></th>
+                            <th><button class="sort-btn" data-table="requests" data-col="email">Email<span class="arrow"></span></button></th>
+                            <th style="text-align:center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-pending-list"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-        // 1. GROUPS LOGIC
-       // 1. GLOBAL GROUP LOGIC (Now with View Codes)
-function loadAllGroups() {
-    onSnapshot(collection(db, "groups"), snap => {
-        const tbody = document.getElementById('admin-group-list');
-        const sel = document.getElementById('global-group-selector');
-        tbody.innerHTML = ''; 
-        sel.innerHTML = '<option value="">-- Select Group to Audit --</option>';
+    <!-- ── VIEW: USERS ── -->
+    <div id="view-users" class="view">
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title blue">Registered Managers & Admins</span>
+                <span id="users-count" class="row-count"></span>
+            </div>
+            <div class="toolbar">
+                <div class="search-wrap">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="users-search" placeholder="Search user…">
+                </div>
+                <select id="users-role-filter">
+                    <option value="">All Roles</option>
+                    <option value="admin">Admin</option>
+                    <option value="manager">Manager</option>
+                </select>
+                <select id="users-status-filter">
+                    <option value="">All Status</option>
+                    <option value="approved">Approved</option>
+                    <option value="pending">Pending</option>
+                    <option value="deactivated">Deactivated</option>
+                </select>
+            </div>
+            <div style="overflow-x:auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th><button class="sort-btn" data-table="users" data-col="name">User Details<span class="arrow"></span></button></th>
+                            <th><button class="sort-btn" data-table="users" data-col="role">Role<span class="arrow"></span></button></th>
+                            <th style="text-align:center"><button class="sort-btn" data-table="users" data-col="status">Status<span class="arrow"></span></button></th>
+                            <th style="text-align:center">Management</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-users-list"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-        snap.forEach(d => {
-            const g = d.data();
-            const id = d.id;
-            
-            // Add to the top dropdown
-            sel.innerHTML += `<option value="${id}">${g.name}</option>`;
+</div><!-- /shell -->
 
-            // Check if code exists, if not show warning
-            const displayCode = g.viewCode ? g.viewCode : '<span class="text-rose-500 font-black animate-pulse">MISSING</span>';
+<!-- TOAST -->
+<div id="toast"></div>
 
-            tbody.innerHTML += `
-                <tr class="hover:bg-slate-900 transition border-b border-slate-800">
-                    <td class="p-4">
-                        <input id="gn-${id}" value="${g.name}" 
-                            class="bg-transparent border-b border-slate-700 w-full outline-none font-bold text-white focus:border-emerald-500 transition">
-                    </td>
-                    <td class="p-4">
-                        <input id="ga-${id}" type="number" value="${g.amount}" 
-                            class="bg-transparent border-b border-slate-700 w-24 outline-none font-mono text-emerald-400 focus:border-emerald-500 transition">
-                    </td>
-                    <td class="p-4 font-mono text-xs">
-                        <div class="flex items-center gap-2">
-                            <span class="text-rose-500 font-black tracking-widest">${displayCode}</span>
-                            <button onclick="regenGCode('${id}')" title="Generate New Code" 
-                                class="bg-slate-800 hover:bg-slate-700 p-1.5 rounded-lg transition text-[9px] text-slate-400 uppercase font-black">
-                                🔄 Regen
-                            </button>
-                        </div>
-                    </td>
-                    <td class="p-4 text-center space-x-2">
-                        <button onclick="saveG('${id}')" class="bg-emerald-600/20 text-emerald-500 hover:bg-emerald-600 hover:text-white px-3 py-1 rounded font-black text-[10px] transition">SAVE</button>
-                        <button onclick="delG('${id}')" class="bg-rose-600/20 text-rose-500 hover:bg-rose-600 hover:text-white px-3 py-1 rounded font-black text-[10px] transition">DELETE</button>
-                    </td>
-                </tr>`;
-        });
+<!-- CONFIRM MODAL -->
+<div id="modal-overlay">
+    <div id="modal-box">
+        <h3 id="modal-title">Confirm Action</h3>
+        <p id="modal-msg">Are you sure?</p>
+        <div class="modal-actions">
+            <button class="btn btn-md btn-ghost" id="modal-cancel">Cancel</button>
+            <button class="btn btn-md btn-red"   id="modal-confirm">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import { db, auth } from './config.js';
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// ── State ────────────────────────────────────────────────
+let selectedGroupId = "";
+let rawData = {
+    groups: [], members: [], contrib: [], payout: [], requests: [], users: []
+};
+let sortState = {};   // { tableName: { col, dir } }
+let pendingCount = 0;
+
+// ── Toast ─────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = `show ${type}`;
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.className = '', 2800);
+}
+
+// ── Confirm modal ─────────────────────────────────────────
+function confirm(title, msg) {
+    return new Promise(res => {
+        document.getElementById('modal-title').textContent = title;
+        document.getElementById('modal-msg').textContent   = msg;
+        const ov = document.getElementById('modal-overlay');
+        ov.classList.add('show');
+        const ok  = document.getElementById('modal-confirm');
+        const no  = document.getElementById('modal-cancel');
+        const cleanup = v => { ov.classList.remove('show'); ok.onclick = null; no.onclick = null; res(v); };
+        ok.onclick  = () => cleanup(true);
+        no.onclick  = () => cleanup(false);
     });
 }
 
-// Global function to regenerate code as Admin
-window.regenGCode = async (id) => {
+// ── Sort helper ───────────────────────────────────────────
+function sortData(arr, col, dir) {
+    return [...arr].sort((a, b) => {
+        let va = (a[col] ?? '').toString().toLowerCase();
+        let vb = (b[col] ?? '').toString().toLowerCase();
+        const na = parseFloat(va), nb = parseFloat(vb);
+        if (!isNaN(na) && !isNaN(nb)) { va = na; vb = nb; }
+        if (va < vb) return dir === 'asc' ? -1 :  1;
+        if (va > vb) return dir === 'asc' ?  1 : -1;
+        return 0;
+    });
+}
+function toggleSort(table, col) {
+    const cur = sortState[table] || {};
+    const dir = cur.col === col && cur.dir === 'asc' ? 'desc' : 'asc';
+    sortState[table] = { col, dir };
+    document.querySelectorAll(`.sort-btn[data-table="${table}"]`).forEach(b => {
+        b.classList.remove('asc','desc');
+        if (b.dataset.col === col) b.classList.add(dir);
+    });
+    renderTable(table);
+}
+document.querySelectorAll('.sort-btn').forEach(btn => {
+    btn.addEventListener('click', () => toggleSort(btn.dataset.table, btn.dataset.col));
+});
+
+// ── Search / filter helpers ───────────────────────────────
+function val(id) { return (document.getElementById(id)?.value || '').toLowerCase().trim(); }
+
+function filterGroups() {
+    const s = val('groups-search');
+    return rawData.groups.filter(r => !s || r.name.toLowerCase().includes(s));
+}
+function filterMembers() {
+    const s = val('members-search'), mo = val('members-month-filter');
+    return rawData.members.filter(r =>
+        (!s  || r.name.toLowerCase().includes(s)) &&
+        (!mo || (r.payoutMonth||'').toLowerCase().includes(mo))
+    );
+}
+function filterContrib() {
+    const s = val('contrib-search'), mo = val('contrib-month-filter');
+    return rawData.contrib.filter(r =>
+        (!s  || (r.memberName||'').toLowerCase().includes(s)) &&
+        (!mo || (r.appliedMonth||'').toLowerCase().includes(mo))
+    );
+}
+function filterPayout() {
+    const s = val('payout-search'), mo = val('payout-month-filter');
+    return rawData.payout.filter(r =>
+        (!s  || (r.receiverName||'').toLowerCase().includes(s)) &&
+        (!mo || (r.month||'').toLowerCase().includes(mo))
+    );
+}
+function filterRequests() {
+    const s = val('requests-search');
+    return rawData.requests.filter(r =>
+        !s || r.name.toLowerCase().includes(s) || r.email.toLowerCase().includes(s)
+    );
+}
+function filterUsers() {
+    const s = val('users-search'), ro = val('users-role-filter'), st = val('users-status-filter');
+    return rawData.users.filter(r =>
+        (!s  || r.name.toLowerCase().includes(s) || r.email.toLowerCase().includes(s)) &&
+        (!ro || (r.role||'').toLowerCase() === ro) &&
+        (!st || (r.status||'').toLowerCase() === st)
+    );
+}
+
+// Wire up all filters / searches
+['groups-search'].forEach(id => document.getElementById(id)?.addEventListener('input', () => renderTable('groups')));
+['members-search','members-month-filter'].forEach(id => document.getElementById(id)?.addEventListener('input', () => renderTable('members')));
+['contrib-search','contrib-month-filter'].forEach(id => document.getElementById(id)?.addEventListener('input', () => renderTable('contrib')));
+['payout-search','payout-month-filter'].forEach(id => document.getElementById(id)?.addEventListener('input', () => renderTable('payout')));
+['requests-search'].forEach(id => document.getElementById(id)?.addEventListener('input', () => renderTable('requests')));
+['users-search','users-role-filter','users-status-filter'].forEach(id => document.getElementById(id)?.addEventListener('input', () => renderTable('users')));
+
+// ── Render dispatcher ─────────────────────────────────────
+function renderTable(table) {
+    switch(table) {
+        case 'groups':   renderGroups();   break;
+        case 'members':  renderMembers();  break;
+        case 'contrib':  renderContrib();  break;
+        case 'payout':   renderPayout();   break;
+        case 'requests': renderRequests(); break;
+        case 'users':    renderUsers();    break;
+    }
+}
+
+function applySort(table, arr) {
+    const s = sortState[table];
+    return s ? sortData(arr, s.col, s.dir) : arr;
+}
+
+function emptyRow(colspan, msg = 'No records found') {
+    return `<tr><td colspan="${colspan}" class="empty"><div class="empty-icon">🗂️</div>${msg.toUpperCase()}</td></tr>`;
+}
+
+// ─────────────────────────────────────────────────────────
+// RENDER: GROUPS
+// ─────────────────────────────────────────────────────────
+function renderGroups() {
+    const tbody = document.getElementById('admin-group-list');
+    let rows = applySort('groups', filterGroups());
+    document.getElementById('groups-count').textContent = rows.length + ' record' + (rows.length !== 1 ? 's' : '');
+    if (!rows.length) { tbody.innerHTML = emptyRow(4); return; }
+    tbody.innerHTML = rows.map(({ _id: id, name, amount, viewCode }) => {
+        const code = viewCode
+            ? `<span class="code-badge">${viewCode}</span>`
+            : `<span class="code-missing">MISSING</span>`;
+        return `
+        <tr>
+            <td><input class="inline-input" id="gn-${id}" value="${esc(name)}" placeholder="Group name"></td>
+            <td><input class="inline-input mono" id="ga-${id}" type="number" value="${amount}" style="width:100px"></td>
+            <td>
+                <div style="display:flex;align-items:center;gap:8px">
+                    ${code}
+                    <button onclick="regenGCode('${id}')" class="btn btn-sm btn-ghost" title="Regenerate Code">🔄 Regen</button>
+                </div>
+            </td>
+            <td style="text-align:center">
+                <div style="display:flex;gap:6px;justify-content:center">
+                    <button onclick="saveG('${id}')" class="btn btn-sm btn-success">✓ Save</button>
+                    <button onclick="delG('${id}')" class="btn btn-sm btn-danger">✕ Delete</button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+// ─────────────────────────────────────────────────────────
+// RENDER: MEMBERS
+// ─────────────────────────────────────────────────────────
+function renderMembers() {
+    const tbody = document.getElementById('admin-member-list');
+    let rows = applySort('members', filterMembers());
+    document.getElementById('members-count').textContent = rows.length + ' record' + (rows.length !== 1 ? 's' : '');
+    if (!selectedGroupId) {
+        document.getElementById('members-no-group').style.display = '';
+        document.getElementById('members-table-wrap').style.display = 'none';
+        return;
+    }
+    document.getElementById('members-no-group').style.display = 'none';
+    document.getElementById('members-table-wrap').style.display = '';
+    if (!rows.length) { tbody.innerHTML = emptyRow(3); return; }
+    tbody.innerHTML = rows.map(({ _id: id, name, payoutMonth }) => `
+        <tr>
+            <td><input class="inline-input" id="mn-${id}" value="${esc(name)}" placeholder="Member name"></td>
+            <td><input class="inline-input" id="mp-${id}" value="${esc(payoutMonth)}" placeholder="e.g. March"></td>
+            <td style="text-align:center">
+                <div style="display:flex;gap:6px;justify-content:center">
+                    <button onclick="saveM('${id}')" class="btn btn-sm btn-success">✓ Save</button>
+                    <button onclick="delM('${id}')" class="btn btn-sm btn-danger">✕ Del</button>
+                </div>
+            </td>
+        </tr>`).join('');
+}
+
+// ─────────────────────────────────────────────────────────
+// RENDER: CONTRIBUTIONS
+// ─────────────────────────────────────────────────────────
+function renderContrib() {
+    const tbody = document.getElementById('admin-contribution-logs');
+    let rows = applySort('contrib', filterContrib());
+    document.getElementById('contrib-count').textContent = rows.length + ' records';
+    if (!rows.length) { tbody.innerHTML = emptyRow(4); return; }
+    tbody.innerHTML = rows.map(({ _id: id, memberName, amount, appliedMonth }) => `
+        <tr>
+            <td style="color:var(--muted);font-size:11px">${esc(memberName)}</td>
+            <td><input class="inline-input mono" id="ca-${id}" type="number" value="${amount}" style="width:80px"></td>
+            <td><input class="inline-input" id="cm-${id}" value="${esc(appliedMonth)}" style="width:90px"></td>
+            <td style="text-align:center">
+                <div style="display:flex;gap:4px;justify-content:center">
+                    <button onclick="saveC('${id}')" class="btn btn-sm btn-success" title="Save">💾</button>
+                    <button onclick="delLog('contributions','${id}')" class="btn btn-sm btn-danger" title="Delete">🗑️</button>
+                </div>
+            </td>
+        </tr>`).join('');
+}
+
+// ─────────────────────────────────────────────────────────
+// RENDER: PAYOUTS
+// ─────────────────────────────────────────────────────────
+function renderPayout() {
+    const tbody = document.getElementById('admin-payout-logs');
+    let rows = applySort('payout', filterPayout());
+    document.getElementById('payout-count').textContent = rows.length + ' records';
+    if (!rows.length) { tbody.innerHTML = emptyRow(4); return; }
+    tbody.innerHTML = rows.map(({ _id: id, receiverName, amountGiven, month }) => `
+        <tr>
+            <td style="font-weight:600">${esc(receiverName)}</td>
+            <td style="color:var(--red);font-family:'Space Mono',monospace;font-size:12px">₱${amountGiven}</td>
+            <td style="color:var(--muted);font-size:11px">${esc(month)}</td>
+            <td style="text-align:center">
+                <button onclick="delLog('payouts','${id}')" class="btn btn-sm btn-danger">🗑️ Del</button>
+            </td>
+        </tr>`).join('');
+}
+
+// ─────────────────────────────────────────────────────────
+// RENDER: REQUESTS
+// ─────────────────────────────────────────────────────────
+function renderRequests() {
+    const tbody = document.getElementById('admin-pending-list');
+    let rows = applySort('requests', filterRequests());
+    document.getElementById('requests-count').textContent = rows.length + ' pending';
+    if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="3" class="empty"><div class="empty-icon">✅</div>NO PENDING REQUESTS</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = rows.map(({ _id: id, name, email }) => `
+        <tr>
+            <td><span style="font-weight:700;color:#fff">${esc(name)}</span></td>
+            <td><span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--muted)">${esc(email)}</span></td>
+            <td style="text-align:center">
+                <button onclick="updateUserStatus('${id}','approved')" class="btn btn-sm btn-green">✓ Approve</button>
+            </td>
+        </tr>`).join('');
+}
+
+// ─────────────────────────────────────────────────────────
+// RENDER: USERS
+// ─────────────────────────────────────────────────────────
+function renderUsers() {
+    const tbody = document.getElementById('admin-users-list');
+    let rows = applySort('users', filterUsers());
+    document.getElementById('users-count').textContent = rows.length + ' user' + (rows.length !== 1 ? 's' : '');
+    if (!rows.length) { tbody.innerHTML = emptyRow(4); return; }
+    tbody.innerHTML = rows.map(({ _id: id, name, email, role, status }) => {
+        const st = status || 'pending';
+        const isApproved = st === 'approved';
+        const btnClass  = isApproved ? 'btn-danger' : 'btn-success';
+        const btnLabel  = isApproved ? '⛔ Deactivate' : '✓ Activate';
+        const nextStatus = isApproved ? 'deactivated' : 'approved';
+        return `
+        <tr>
+            <td>
+                <div style="font-weight:700;color:#fff">${esc(name)}</div>
+                <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted)">${esc(email)}</div>
+            </td>
+            <td>
+                <span style="font-family:'Syne',sans-serif;font-weight:900;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--red)">${esc(role)}</span>
+            </td>
+            <td style="text-align:center">
+                <span class="pill ${st}"><span class="pill-dot"></span>${st}</span>
+            </td>
+            <td style="text-align:center">
+                <button onclick="updateUserStatus('${id}','${nextStatus}')" class="btn btn-sm ${btnClass}">${btnLabel}</button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+// ─────────────────────────────────────────────────────────
+// FIRESTORE LISTENERS
+// ─────────────────────────────────────────────────────────
+function loadAllGroups() {
+    onSnapshot(collection(db, "groups"), snap => {
+        rawData.groups = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+        document.getElementById('stat-groups').textContent = rawData.groups.length;
+        // Sync dropdown
+        const sel = document.getElementById('global-group-selector');
+        const prev = sel.value;
+        sel.innerHTML = '<option value="">— Select Group to Audit —</option>';
+        rawData.groups.forEach(g => sel.innerHTML += `<option value="${g._id}"${g._id===prev?' selected':''}>${esc(g.name)}</option>`);
+        renderTable('groups');
+    });
+}
+
+function loadMembers(gid) {
+    onSnapshot(query(collection(db, "members"), where("groupId", "==", gid)), snap => {
+        rawData.members = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+        renderTable('members');
+    });
+}
+
+function loadAudit(gid) {
+    onSnapshot(query(collection(db, "contributions"), where("groupId", "==", gid)), snap => {
+        rawData.contrib = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+        renderTable('contrib');
+    });
+    onSnapshot(query(collection(db, "payouts"), where("groupId", "==", gid)), snap => {
+        rawData.payout = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+        renderTable('payout');
+    });
+    // Show audit grid
+    document.getElementById('audit-no-group').style.display = 'none';
+    const grid = document.getElementById('audit-grid');
+    grid.style.display = 'grid';
+}
+
+function loadRequests() {
+    onSnapshot(query(collection(db, "users"), where("status", "==", "pending")), snap => {
+        rawData.requests = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+        pendingCount = rawData.requests.length;
+        const badge = document.getElementById('badge-requests');
+        badge.style.display = pendingCount ? '' : 'none';
+        badge.textContent = pendingCount;
+        document.getElementById('stat-pending').textContent = pendingCount;
+        renderTable('requests');
+    });
+}
+
+function loadUsers() {
+    onSnapshot(collection(db, "users"), snap => {
+        rawData.users = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+        document.getElementById('stat-users').textContent = rawData.users.length;
+        renderTable('users');
+    }, err => {
+        console.error("User List Error:", err.code, err.message);
+        if (err.code === 'permission-denied') {
+            toast('Permission denied — check Firestore role is "admin"', 'error');
+        }
+    });
+}
+
+// ─────────────────────────────────────────────────────────
+// AUTH
+// ─────────────────────────────────────────────────────────
+onAuthStateChanged(auth, u => {
+    if (!u) { window.location.href = "login.html"; return; }
+    loadAllGroups();
+    loadRequests();
+    loadUsers();
+    // Show audit empty state initially
+    document.getElementById('audit-no-group').style.display = '';
+    document.getElementById('audit-grid').style.display = 'none';
+    document.getElementById('members-no-group').style.display = '';
+    document.getElementById('members-table-wrap').style.display = 'none';
+});
+
+document.getElementById('nav-logout').onclick = () => signOut(auth);
+
+// ─────────────────────────────────────────────────────────
+// TAB SWITCHER
+// ─────────────────────────────────────────────────────────
+const tabs = ['groups','members','history','requests','users'];
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const t = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(`view-${t}`)?.classList.add('active');
+    });
+});
+
+// ─────────────────────────────────────────────────────────
+// GROUP SELECTOR
+// ─────────────────────────────────────────────────────────
+document.getElementById('global-group-selector').onchange = e => {
+    selectedGroupId = e.target.value;
+    if (selectedGroupId) {
+        loadMembers(selectedGroupId);
+        loadAudit(selectedGroupId);
+    } else {
+        rawData.members = []; rawData.contrib = []; rawData.payout = [];
+        renderTable('members');
+        document.getElementById('audit-no-group').style.display = '';
+        document.getElementById('audit-grid').style.display = 'none';
+    }
+};
+
+// ─────────────────────────────────────────────────────────
+// ACTIONS: GROUPS
+// ─────────────────────────────────────────────────────────
+window.regenGCode = async id => {
+    const ok = await confirm("Regenerate Code?", "This will create a new access code. The old one will stop working.");
+    if (!ok) return;
     const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     try {
         await updateDoc(doc(db, "groups", id), { viewCode: newCode });
-        alert("Success! Group Code updated to: " + newCode);
-    } catch (e) {
-        alert("Error updating code: " + e.message);
-    }
+        toast(`New code: ${newCode}`);
+    } catch (e) { toast(e.message, 'error'); }
 };
-        window.saveG = async id => { await updateDoc(doc(db, "groups", id), { name: document.getElementById(`gn-${id}`).value, amount: parseFloat(document.getElementById(`ga-${id}`).value) }); alert("Group Updated"); };
-        window.delG = async id => { if(confirm("Delete Group?")) await deleteDoc(doc(db, "groups", id)); };
 
-        // 2. AUDIT DATA SELECTOR
-        document.getElementById('global-group-selector').onchange = e => {
-            selectedGroupId = e.target.value;
-            if(selectedGroupId) { loadMembers(selectedGroupId); loadAudit(selectedGroupId); }
-        };
+window.saveG = async id => {
+    try {
+        await updateDoc(doc(db, "groups", id), {
+            name:   document.getElementById(`gn-${id}`).value.trim(),
+            amount: parseFloat(document.getElementById(`ga-${id}`).value)
+        });
+        toast("Group saved ✓");
+    } catch (e) { toast(e.message, 'error'); }
+};
 
-        function loadMembers(gid) {
-            onSnapshot(query(collection(db, "members"), where("groupId", "==", gid)), snap => {
-                const tbody = document.getElementById('admin-member-list'); tbody.innerHTML = '';
-                snap.forEach(d => {
-                    const m = d.data();
-                    tbody.innerHTML += `<tr><td class="p-4"><input id="mn-${d.id}" value="${m.name}" class="bg-transparent border-b border-slate-800 w-full outline-none focus:border-rose-500"></td><td class="p-4"><input id="mp-${d.id}" value="${m.payoutMonth}" class="bg-transparent border-b border-slate-800 w-full outline-none focus:border-rose-500"></td><td class="p-4 text-center space-x-4"><button onclick="saveM('${d.id}')" class="text-emerald-500 font-black text-xs">SAVE</button><button onclick="delM('${d.id}')" class="text-rose-500 font-black text-xs">DEL</button></td></tr>`;
-                });
-            });
-        }
-        window.saveM = async id => { await updateDoc(doc(db, "members", id), { name: document.getElementById(`mn-${id}`).value, payoutMonth: document.getElementById(`mp-${id}`).value }); alert("Member Saved"); };
-        window.delM = async id => { if(confirm("Delete Member?")) await deleteDoc(doc(db, "members", id)); };
+window.delG = async id => {
+    const ok = await confirm("Delete Group?", "This action is permanent and cannot be undone.");
+    if (ok) { await deleteDoc(doc(db, "groups", id)); toast("Group deleted"); }
+};
 
-        // 3. EDITABLE TRANSACTION LOGS
-        function loadAudit(gid) {
-            onSnapshot(query(collection(db, "contributions"), where("groupId", "==", gid)), snap => {
-                const tbody = document.getElementById('admin-contribution-logs'); tbody.innerHTML = '';
-                snap.forEach(d => {
-                    const c = d.data();
-                    tbody.innerHTML += `<tr><td class="p-3 text-slate-500">${c.memberName}</td><td class="p-3"><input id="ca-${d.id}" type="number" value="${c.amount}" class="bg-slate-800 rounded p-1 w-16"></td><td class="p-3"><input id="cm-${d.id}" value="${c.appliedMonth}" class="bg-slate-800 rounded p-1 w-16"></td><td class="p-3 text-center"><button onclick="saveC('${d.id}')" class="text-emerald-500 mr-2">💾</button><button onclick="delLog('contributions','${d.id}')" class="text-rose-500">🗑️</button></td></tr>`;
-                });
-            });
-            onSnapshot(query(collection(db, "payouts"), where("groupId", "==", gid)), snap => {
-                const tbody = document.getElementById('admin-payout-logs'); tbody.innerHTML = '';
-                snap.forEach(d => {
-                    const p = d.data();
-                    tbody.innerHTML += `<tr><td class="p-3">${p.receiverName}</td><td class="p-3 text-rose-500">₱${p.amountGiven}</td><td class="p-3 opacity-50">${p.month}</td><td class="p-3 text-center"><button onclick="delLog('payouts','${d.id}')" class="text-rose-500 font-black">DEL</button></td></tr>`;
-                });
-            });
-        }
-        window.saveC = async id => { await updateDoc(doc(db, "contributions", id), { amount: parseFloat(document.getElementById(`ca-${id}`).value), appliedMonth: document.getElementById(`cm-${id}`).value }); alert("Log Saved"); };
-        window.delLog = async (col, id) => { if(confirm("Delete permanent log?")) await deleteDoc(doc(db, col, id)); };
+// ─────────────────────────────────────────────────────────
+// ACTIONS: MEMBERS
+// ─────────────────────────────────────────────────────────
+window.saveM = async id => {
+    try {
+        await updateDoc(doc(db, "members", id), {
+            name:        document.getElementById(`mn-${id}`).value.trim(),
+            payoutMonth: document.getElementById(`mp-${id}`).value.trim()
+        });
+        toast("Member saved ✓");
+    } catch (e) { toast(e.message, 'error'); }
+};
 
-        // 4. USER ACCESS LOGIC (APPROVALS & DEACTIVATION)
-        function loadRequests() {
-            onSnapshot(query(collection(db, "users"), where("status", "==", "pending")), snap => {
-                const tbody = document.getElementById('admin-pending-list'); tbody.innerHTML = '';
-                if(snap.empty) tbody.innerHTML = '<tr><td colspan="3" class="p-10 text-center text-slate-700 italic">No pending manager requests</td></tr>';
-                snap.forEach(d => {
-                    const u = d.data();
-                    tbody.innerHTML += `<tr><td class="p-4 font-bold text-white">${u.name}</td><td class="p-4 text-slate-500 font-mono text-xs">${u.email}</td><td class="p-4 text-center"><button onclick="updateUserStatus('${d.id}', 'approved')" class="bg-emerald-600 px-4 py-1 rounded-lg font-black text-[10px]">APPROVE</button></td></tr>`;
-                });
-            });
-        }
+window.delM = async id => {
+    const ok = await confirm("Delete Member?", "This will permanently remove this member.");
+    if (ok) { await deleteDoc(doc(db, "members", id)); toast("Member deleted"); }
+};
 
-        function loadUsers() {
-             console.log("Attempting to load users list...");
-    onSnapshot(collection(db, "users"), (snap) => {
-        const tbody = document.getElementById('admin-users-list');
-        tbody.innerHTML = '';
-        console.log("Users found:", snap.size);
-        
-        snap.forEach(d => {
-            
-                    const u = d.data();
-                    const statusClass = `status-${u.status || 'pending'}`;
-                    const btnColor = u.status === 'approved' ? 'bg-rose-900 text-rose-200' : 'bg-emerald-900 text-emerald-200';
-                    const btnLabel = u.status === 'approved' ? 'DEACTIVATE' : 'ACTIVATE';
-                    const nextStatus = u.status === 'approved' ? 'deactivated' : 'approved';
+// ─────────────────────────────────────────────────────────
+// ACTIONS: CONTRIBUTIONS
+// ─────────────────────────────────────────────────────────
+window.saveC = async id => {
+    try {
+        await updateDoc(doc(db, "contributions", id), {
+            amount:       parseFloat(document.getElementById(`ca-${id}`).value),
+            appliedMonth: document.getElementById(`cm-${id}`).value.trim()
+        });
+        toast("Contribution saved ✓");
+    } catch (e) { toast(e.message, 'error'); }
+};
 
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-slate-900 transition">
-                            <td class="p-4">
-                                <p class="font-bold text-white">${u.name}</p>
-                                <p class="text-[10px] text-slate-500 font-mono">${u.email}</p>
-                            </td>
-                            <td class="p-4 font-black text-[10px] uppercase text-rose-500 tracking-widest">${u.role}</td>
-                            <td class="p-4 text-center">
-                                <span class="status-pill ${statusClass}">${u.status || 'pending'}</span>
-                            </td>
-                            <td class="p-4 text-center">
-                                <button onclick="updateUserStatus('${d.id}', '${nextStatus}')" 
-                                    class="${btnColor} px-3 py-1 rounded text-[9px] font-black uppercase tracking-tighter transition">
-                                    ${btnLabel}
-                                </button>
-                            </td>
-                        </tr>`;
-                });
-                 }, (error) => {
-        // THIS WILL TELL YOU EXACTLY WHAT IS WRONG
-        console.error("User List Error:", error.code, error.message);
-        if (error.code === 'permission-denied') {
-            alert("Permission Denied: Your account role in Firestore might not be set to 'admin' (all lowercase).");
-        }
-    
-            });
-        }
+window.delLog = async (col, id) => {
+    const ok = await confirm("Delete Log?", "Permanent audit records will be removed. This cannot be undone.");
+    if (ok) { await deleteDoc(doc(db, col, id)); toast("Log deleted"); }
+};
 
-        window.updateUserStatus = async (uid, newStatus) => {
-            try {
-                await updateDoc(doc(db, "users", uid), { status: newStatus });
-                alert(`User is now ${newStatus.toUpperCase()}`);
-            } catch (e) { alert(e.message); }
-        };
+// ─────────────────────────────────────────────────────────
+// ACTIONS: USERS
+// ─────────────────────────────────────────────────────────
+window.updateUserStatus = async (uid, newStatus) => {
+    const labels = { approved: 'Approve', deactivated: 'Deactivate' };
+    const ok = await confirm(`${labels[newStatus] || 'Change'} User?`, `This will set the user status to ${newStatus.toUpperCase()}.`);
+    if (!ok) return;
+    try {
+        await updateDoc(doc(db, "users", uid), { status: newStatus });
+        toast(`User is now ${newStatus.toUpperCase()} ✓`);
+    } catch (e) { toast(e.message, 'error'); }
+};
 
-    </script>
+// ─────────────────────────────────────────────────────────
+// UTILITY
+// ─────────────────────────────────────────────────────────
+function esc(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
 </body>
 </html>
